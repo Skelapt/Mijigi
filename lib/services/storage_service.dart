@@ -3,11 +3,16 @@ import '../models/capture_item.dart';
 
 class StorageService {
   static const _boxName = 'captures';
+  static const _deadlinesBoxName = 'deadlines';
   late Box _box;
+  Box? _deadlinesBox;
+
+  Box? get deadlinesBox => _deadlinesBox;
 
   Future<void> init() async {
     await Hive.initFlutter();
     _box = await Hive.openBox(_boxName);
+    _deadlinesBox = await Hive.openBox(_deadlinesBoxName);
   }
 
   List<CaptureItem> getAllItems() {

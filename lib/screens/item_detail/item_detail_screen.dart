@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../models/capture_item.dart';
+import '../../models/action_suggestion.dart';
 import '../../providers/app_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/action_suggestion_card.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   final String itemId;
@@ -46,7 +48,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
-        final item = provider.items.where((i) => i.id == widget.itemId).firstOrNull;
+        final item =
+            provider.items.where((i) => i.id == widget.itemId).firstOrNull;
         if (item == null) {
           return Scaffold(
             backgroundColor: MijigiColors.background,
@@ -59,6 +62,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         }
 
         _loadItem(item);
+
+        final actions = provider.getActionsForItem(item.id);
 
         return Scaffold(
           backgroundColor: MijigiColors.background,
@@ -100,7 +105,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  onSelected: (value) => _handleAction(value, provider, item),
+                  onSelected: (value) =>
+                      _handleAction(value, provider, item),
                   itemBuilder: (_) => [
                     const PopupMenuItem(
                       value: 'share',
@@ -195,7 +201,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 // Category & Type badges
                 Row(
                   children: [
-                    _buildBadge(item.categoryLabel, _getCategoryColor(item.category)),
+                    _buildBadge(
+                        item.categoryLabel, _getCategoryColor(item.category)),
                     const SizedBox(width: 8),
                     _buildBadge(item.type.name, MijigiColors.textTertiary),
                     const Spacer(),
@@ -243,7 +250,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                     decoration: InputDecoration(
                       hintText: 'Title',
                       hintStyle: TextStyle(
-                        color: MijigiColors.textTertiary.withValues(alpha: 0.5),
+                        color:
+                            MijigiColors.textTertiary.withValues(alpha: 0.5),
                       ),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.zero,
@@ -267,6 +275,29 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                     fontSize: 13,
                   ),
                 ),
+
+                // === ACTION SUGGESTIONS ===
+                if (actions.isNotEmpty && !_isEditing) ...[
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Suggested Actions',
+                    style: TextStyle(
+                      color: MijigiColors.textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...actions.take(5).map((action) => Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: ActionSuggestionCard(
+                          action: action,
+                          onExecute: () =>
+                              _executeAction(context, action),
+                        ),
+                      )),
+                ],
+
                 const SizedBox(height: 20),
 
                 // Text content
@@ -331,15 +362,113 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...item.extractedData!.entries.map((entry) {
+                  ...item.extractedData!.entries
+                      .where((e) => e.key != 'deadlines')
+                      .map((entry) {
                     return _buildDataSection(entry.key, entry.value);
                   }),
+
+                  // Deadlines section (special formatting)
+                  if (item.extractedData!.containsKey('deadlines'))
+                    _buildDeadlinesSection(
+                        item.extractedData!['deadlines'] as List),
                 ],
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildDeadlinesSection(List deadlines) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: MijigiColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: MijigiColors.warning.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.schedule_rounded,
+                  size: 16, color: MijigiColors.warning),
+              SizedBox(width: 6),
+              Text(
+                'DEADLINES',
+                style: TextStyle(
+                  color: MijigiColors.warning,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...deadlines.map((dl) {
+            if (dl is! Map) return const SizedBox.shrink();
+            final label = dl['label'] ?? 'Deadline';
+            final dateStr = dl['date'] as String?;
+            final type = dl['type'] ?? 'general';
+            String dateLabel = dateStr ?? '';
+            if (dateStr != null) {
+              final date = DateTime.tryParse(dateStr);
+              if (date != null) {
+                final days = date.difference(DateTime.now()).inDays;
+                if (days < 0) {
+                  dateLabel = 'Expired ${-days}d ago';
+                } else if (days == 0) {
+                  dateLabel = 'Today!';
+                } else if (days == 1) {
+                  dateLabel = 'Tomorrow';
+                } else {
+                  dateLabel = 'In $days days';
+                }
+              }
+            }
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: MijigiColors.warning,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '$label ($type)',
+                      style: const TextStyle(
+                        color: MijigiColors.textPrimary,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    dateLabel,
+                    style: const TextStyle(
+                      color: MijigiColors.warning,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
     );
   }
 
@@ -369,6 +498,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       'phones' => Icons.phone_rounded,
       'emails' => Icons.email_rounded,
       'urls' => Icons.link_rounded,
+      'names' => Icons.person_rounded,
+      'addresses' => Icons.location_on_rounded,
+      'references' => Icons.tag_rounded,
       _ => Icons.data_object_rounded,
     };
 
@@ -478,6 +610,17 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     }
   }
 
+  void _executeAction(BuildContext context, ActionSuggestion action) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${action.actionVerb}: ${action.label}'),
+        backgroundColor: MijigiColors.surfaceLight,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   String _formatDate(DateTime date) {
     final months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -490,15 +633,15 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   }
 
   Color _getCategoryColor(ItemCategory cat) => switch (cat) {
-    ItemCategory.receipt => MijigiColors.categoryReceipt,
-    ItemCategory.document => MijigiColors.categoryDocument,
-    ItemCategory.medical => MijigiColors.categoryMedical,
-    ItemCategory.financial => MijigiColors.categoryFinancial,
-    ItemCategory.travel => MijigiColors.categoryTravel,
-    ItemCategory.work => MijigiColors.categoryWork,
-    ItemCategory.personal => MijigiColors.categoryPersonal,
-    ItemCategory.food => MijigiColors.categoryFood,
-    ItemCategory.shopping => MijigiColors.categoryShopping,
-    _ => MijigiColors.textTertiary,
-  };
+        ItemCategory.receipt => MijigiColors.categoryReceipt,
+        ItemCategory.document => MijigiColors.categoryDocument,
+        ItemCategory.medical => MijigiColors.categoryMedical,
+        ItemCategory.financial => MijigiColors.categoryFinancial,
+        ItemCategory.travel => MijigiColors.categoryTravel,
+        ItemCategory.work => MijigiColors.categoryWork,
+        ItemCategory.personal => MijigiColors.categoryPersonal,
+        ItemCategory.food => MijigiColors.categoryFood,
+        ItemCategory.shopping => MijigiColors.categoryShopping,
+        _ => MijigiColors.textTertiary,
+      };
 }

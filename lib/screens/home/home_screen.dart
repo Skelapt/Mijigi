@@ -10,6 +10,9 @@ import '../../widgets/collection_tile.dart';
 import '../../widgets/quick_action_button.dart';
 import '../../widgets/command_bar.dart';
 import '../../widgets/import_banner.dart';
+import '../../widgets/brief_card.dart';
+import '../../widgets/deadline_card.dart';
+import '../../widgets/action_suggestion_card.dart';
 import '../agent/agent_screen.dart';
 import '../item_detail/item_detail_screen.dart';
 import '../library/library_screen.dart';
@@ -42,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
         final isSearching = provider.searchQuery.isNotEmpty;
+        final brief = provider.brief;
 
         return CustomScrollView(
           slivers: [
@@ -75,39 +79,35 @@ class _HomeScreenState extends State<HomeScreen> {
                             letterSpacing: -0.5,
                           ),
                         ),
-                        if (provider.isProcessing) ...[
-                          const SizedBox(width: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => provider.setTab(5),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: MijigiColors.accent.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(8),
+                              color: MijigiColors.surface,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: MijigiColors.border),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SizedBox(
-                                  width: 10,
-                                  height: 10,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 1.5,
-                                    color: MijigiColors.accent,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                const Text(
-                                  'Processing',
-                                  style: TextStyle(
-                                    color: MijigiColors.accent,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
+                            child: const Icon(
+                              Icons.settings_rounded,
+                              size: 18,
+                              color: MijigiColors.textTertiary,
                             ),
                           ),
-                        ],
+                        ),
+                        if (provider.isProcessing)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.5,
+                                color: MijigiColors.accent,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ],
@@ -143,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
             if (isSearching)
               _buildSearchResults(provider)
@@ -152,10 +152,143 @@ class _HomeScreenState extends State<HomeScreen> {
               if (provider.totalItems == 0 || provider.isImporting)
                 const SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.only(bottom: 20),
+                    padding: EdgeInsets.only(bottom: 16),
                     child: ImportBanner(),
                   ),
                 ),
+
+              // === DAILY BRIEF ===
+              if (brief != null && provider.totalItems > 0) ...[
+                SliverToBoxAdapter(
+                  child: BriefCard(
+                    brief: brief,
+                    onTapDeadlines: () => provider.setTab(2),
+                    onTapActions: () {},
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 20)),
+              ],
+
+              // === URGENT DEADLINES ===
+              if (provider.urgentDeadlines.isNotEmpty ||
+                  provider.expiredDeadlines.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.schedule_rounded,
+                            size: 18, color: MijigiColors.warning),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'Needs Attention',
+                          style: TextStyle(
+                            color: MijigiColors.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => provider.setTab(2),
+                          child: const Text(
+                            'View all',
+                            style: TextStyle(
+                              color: MijigiColors.primary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final allUrgent = [
+                          ...provider.expiredDeadlines,
+                          ...provider.urgentDeadlines,
+                        ];
+                        if (index >= allUrgent.length) return null;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: DeadlineCard(
+                            deadline: allUrgent[index],
+                            onTap: () => _openItem(
+                                context, allUrgent[index].itemId),
+                          ),
+                        );
+                      },
+                      childCount: [
+                        ...provider.expiredDeadlines,
+                        ...provider.urgentDeadlines,
+                      ].take(3).length,
+                    ),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              ],
+
+              // === ACTION SUGGESTIONS ===
+              if (provider.pendingActions.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.auto_awesome_rounded,
+                            size: 18, color: MijigiColors.primary),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'Suggested Actions',
+                          style: TextStyle(
+                            color: MijigiColors.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${provider.pendingActions.length}',
+                          style: const TextStyle(
+                            color: MijigiColors.textTertiary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 72,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: provider.pendingActions.take(5).length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final action = provider.pendingActions[index];
+                        return SizedBox(
+                          width: 280,
+                          child: ActionSuggestionCard(
+                            action: action,
+                            onExecute: () =>
+                                _executeAction(context, provider, action),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 20)),
+              ],
 
               // Quick actions
               SliverToBoxAdapter(
@@ -193,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 28)),
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
               // Smart Collections
               if (provider.activeCategories.isNotEmpty) ...[
@@ -249,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                const SliverToBoxAdapter(child: SizedBox(height: 28)),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
               ],
 
               // Recent items
@@ -295,7 +428,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: const EdgeInsets.only(bottom: 10),
                           child: CaptureCard(
                             item: item,
-                            onTap: () => _openItem(context, item),
+                            onTap: () => _openItem(context, item.id),
                             onLongPress: () =>
                                 _showItemActions(context, provider, item),
                           ),
@@ -352,7 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.only(bottom: 10),
               child: CaptureCard(
                 item: result.item,
-                onTap: () => _openItem(context, result.item),
+                onTap: () => _openItem(context, result.item.id),
               ),
             );
           },
@@ -407,14 +540,14 @@ class _HomeScreenState extends State<HomeScreen> {
   void _captureCamera(AppProvider provider) async {
     final item = await provider.captureFromCamera();
     if (item != null && mounted) {
-      _openItem(context, item);
+      _openItem(context, item.id);
     }
   }
 
   void _captureGallery(AppProvider provider) async {
     final item = await provider.captureFromGallery();
     if (item != null && mounted) {
-      _openItem(context, item);
+      _openItem(context, item.id);
     }
   }
 
@@ -436,7 +569,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _captureClipboard(AppProvider provider) async {
-    // Get clipboard data
     final data = await _getClipboardText();
     if (data != null && data.isNotEmpty) {
       await provider.captureClipboard(data);
@@ -475,11 +607,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _openItem(BuildContext context, CaptureItem item) {
+  void _openItem(BuildContext context, String itemId) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ItemDetailScreen(itemId: item.id),
+        builder: (_) => ItemDetailScreen(itemId: itemId),
       ),
     );
   }
@@ -489,6 +621,19 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => LibraryScreen(filterCategory: category),
+      ),
+    );
+  }
+
+  void _executeAction(
+      BuildContext context, AppProvider provider, dynamic action) {
+    // TODO: Wire up actual action execution (call, email, calendar, etc.)
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Action: ${action.label}'),
+        backgroundColor: MijigiColors.surfaceLight,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }

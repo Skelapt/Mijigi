@@ -3,10 +3,17 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../models/capture_item.dart';
+import '../models/deadline.dart';
+import '../models/action_suggestion.dart';
+import '../models/daily_brief.dart';
 import '../services/storage_service.dart';
 import '../services/ocr_service.dart';
 import '../services/search_service.dart';
 import '../services/categorisation_service.dart';
+import '../services/extraction_service.dart';
+import '../services/deadline_service.dart';
+import '../services/action_service.dart';
+import '../services/brief_service.dart';
 import '../services/photo_import_service.dart';
 
 class AppProvider extends ChangeNotifier {
@@ -14,6 +21,10 @@ class AppProvider extends ChangeNotifier {
   final OcrService _ocr = OcrService();
   final SearchService _search = SearchService();
   final CategorisationService _categorisation = CategorisationService();
+  final ExtractionService _extraction = ExtractionService();
+  final ActionService _actionService = ActionService();
+  late final DeadlineService _deadlineService;
+  late final BriefService _briefService;
   final PhotoImportService _photoImport = PhotoImportService();
   final ImagePicker _picker = ImagePicker();
   final _uuid = const Uuid();
@@ -26,6 +37,18 @@ class AppProvider extends ChangeNotifier {
   bool _isImporting = false;
   ImportProgress? _importProgress;
   int _currentTab = 0;
+
+  // Intelligence layer
+  DailyBrief? _brief;
+  List<Deadline> _urgentDeadlines = [];
+  List<Deadline> _upcomingDeadlines = [];
+  List<Deadline> _expiredDeadlines = [];
+  List<ActionSuggestion> _pendingActions = [];
+
+  AppProvider() {
+    _deadlineService = DeadlineService(_storage);
+    _briefService = BriefService(_deadlineService, _actionService);
+  }
 
   // Getters
   List<CaptureItem> get items => _items;
@@ -44,6 +67,15 @@ class AppProvider extends ChangeNotifier {
   int get currentTab => _currentTab;
   int get totalItems => activeItems.length;
   StorageService get storage => _storage;
+
+  // Intelligence getters
+  DailyBrief? get brief => _brief;
+  List<Deadline> get urgentDeadlines => _urgentDeadlines;
+  List<Deadline> get upcomingDeadlines => _upcomingDeadlines;
+  List<Deadline> get expiredDeadlines => _expiredDeadlines;
+  List<ActionSuggestion> get pendingActions => _pendingActions;
+  bool get hasAlerts =>
+      _expiredDeadlines.isNotEmpty || _urgentDeadlines.isNotEmpty;
 
   Map<ItemCategory, int> get categoryCounts {
     final counts = <ItemCategory, int>{};
@@ -71,13 +103,39 @@ class AppProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
 
-    // Process any unprocessed items in background
+    // Process unprocessed items and build intelligence
     _processUnprocessedItems();
+    _refreshIntelligence();
   }
 
   void setTab(int index) {
     _currentTab = index;
     notifyListeners();
+  }
+
+  // --- Intelligence Layer ---
+
+  void _refreshIntelligence() {
+    final active = activeItems;
+    _urgentDeadlines = _deadlineService.getUrgent(active);
+    _upcomingDeadlines = _deadlineService.getUpcoming(active);
+    _expiredDeadlines = _deadlineService.getExpired(active);
+    _pendingActions = _actionService.getAllPendingActions(active).take(15).toList();
+    _brief = _briefService.generate(active);
+    notifyListeners();
+  }
+
+  /// Get action suggestions for a specific item.
+  List<ActionSuggestion> getActionsForItem(String itemId) {
+    final item = _items.where((i) => i.id == itemId).firstOrNull;
+    if (item == null) return [];
+    return _actionService.generateActions(item);
+  }
+
+  /// Dismiss a deadline.
+  Future<void> dismissDeadline(String deadlineId) async {
+    await _deadlineService.dismissDeadline(deadlineId);
+    _refreshIntelligence();
   }
 
   // --- Search ---
@@ -137,12 +195,14 @@ class AppProvider extends ChangeNotifier {
       isProcessed: true,
     );
 
-    // Auto-categorise
+    // Auto-categorise and extract intelligence
     item.category = _categorisation.categorise(text);
-    item.extractedData = _categorisation.extractData(text);
+    final extraction = _extraction.extract(text);
+    item.extractedData = extraction.toMap();
 
     await _storage.saveItem(item);
     _items.insert(0, item);
+    _refreshIntelligence();
     notifyListeners();
     return item;
   }
@@ -156,10 +216,12 @@ class AppProvider extends ChangeNotifier {
     );
 
     item.category = _categorisation.categorise(text);
-    item.extractedData = _categorisation.extractData(text);
+    final extraction = _extraction.extract(text);
+    item.extractedData = extraction.toMap();
 
     await _storage.saveItem(item);
     _items.insert(0, item);
+    _refreshIntelligence();
     notifyListeners();
     return item;
   }
@@ -191,7 +253,10 @@ class AppProvider extends ChangeNotifier {
       if (result.isNotEmpty) {
         item.rawText = result.fullText;
         item.category = _categorisation.categorise(result.fullText);
-        item.extractedData = _categorisation.extractData(result.fullText);
+
+        // Use the smart extraction service
+        final extraction = _extraction.extract(result.fullText);
+        item.extractedData = extraction.toMap();
       }
     } catch (e) {
       debugPrint('OCR failed for ${item.id}: $e');
@@ -199,6 +264,7 @@ class AppProvider extends ChangeNotifier {
 
     item.isProcessed = true;
     await _storage.updateItem(item);
+    _refreshIntelligence();
     notifyListeners();
   }
 
@@ -214,6 +280,7 @@ class AppProvider extends ChangeNotifier {
     }
 
     _isProcessing = false;
+    _refreshIntelligence();
     notifyListeners();
   }
 
@@ -250,6 +317,7 @@ class AppProvider extends ChangeNotifier {
         // Reload all items from storage
         _items = _storage.getAllItems();
         _isImporting = false;
+        _refreshIntelligence();
         notifyListeners();
       }
     }
@@ -261,12 +329,20 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Reload all items from storage (after file import, etc.)
+  void reloadItems() {
+    _items = _storage.getAllItems();
+    _refreshIntelligence();
+    notifyListeners();
+  }
+
   // --- Item Management ---
 
   Future<void> updateItem(CaptureItem item) async {
     await _storage.updateItem(item);
     final idx = _items.indexWhere((i) => i.id == item.id);
     if (idx >= 0) _items[idx] = item;
+    _refreshIntelligence();
     notifyListeners();
   }
 
@@ -280,6 +356,7 @@ class AppProvider extends ChangeNotifier {
     }
     await _storage.deleteItem(id);
     _items.removeWhere((i) => i.id == id);
+    _refreshIntelligence();
     notifyListeners();
   }
 
@@ -294,6 +371,7 @@ class AppProvider extends ChangeNotifier {
     final item = _items.firstWhere((i) => i.id == id);
     item.isArchived = true;
     await _storage.updateItem(item);
+    _refreshIntelligence();
     notifyListeners();
   }
 

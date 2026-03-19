@@ -120,36 +120,33 @@ class CategorisationService {
     return keywords.any((kw) => text.contains(kw));
   }
 
-  /// Extract structured data from text (dates, amounts, phone numbers, etc.)
+  /// Extract structured data from text.
+  /// Note: For richer extraction (deadlines, references, names, addresses),
+  /// use ExtractionService directly.
   Map<String, dynamic> extractData(String text) {
     final data = <String, dynamic>{};
 
-    // Extract monetary amounts
     final amounts = RegExp(r'[\$£€]\s*[\d,]+\.?\d*')
         .allMatches(text)
         .map((m) => m.group(0)!)
         .toList();
     if (amounts.isNotEmpty) data['amounts'] = amounts;
 
-    // Extract dates
     final dates = RegExp(
       r'\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4}',
     ).allMatches(text).map((m) => m.group(0)!).toList();
     if (dates.isNotEmpty) data['dates'] = dates;
 
-    // Extract phone numbers
     final phones = RegExp(
       r'(?:\+?\d{1,3}[\s\-]?)?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4}',
     ).allMatches(text).map((m) => m.group(0)!.trim()).where((p) => p.length >= 8).toList();
     if (phones.isNotEmpty) data['phones'] = phones;
 
-    // Extract email addresses
     final emails = RegExp(
       r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}',
     ).allMatches(text).map((m) => m.group(0)!).toList();
     if (emails.isNotEmpty) data['emails'] = emails;
 
-    // Extract URLs
     final urls = RegExp(
       r'https?://[^\s<>]+',
     ).allMatches(text).map((m) => m.group(0)!).toList();

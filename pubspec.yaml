@@ -30,6 +30,14 @@ dependencies:
   # Networking
   http: ^1.6.0
 
+  # PDF & Documents
+  syncfusion_flutter_pdf: ^28.1.33
+
+  # File utilities
+  mime: ^1.0.6
+  crypto: ^3.0.6
+  open_file: ^3.5.10
+
   # Sharing
   share_plus: ^7.2.1
 
