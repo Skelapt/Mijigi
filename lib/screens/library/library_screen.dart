@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:provider/provider.dart';
 import '../../models/capture_item.dart';
 import '../../providers/app_provider.dart';
@@ -20,12 +19,43 @@ class LibraryScreen extends StatefulWidget {
 class _LibraryScreenState extends State<LibraryScreen> {
   ItemCategory? _selectedCategory;
   String _localSearch = '';
-  bool _showGrid = true;
+  String _imageFilter = 'all';
 
   @override
   void initState() {
     super.initState();
     _selectedCategory = widget.filterCategory;
+  }
+
+  /// Get only image-type items (photos + screenshots)
+  List<CaptureItem> _getImageItems(AppProvider provider) {
+    var items = provider.activeItems.where((i) =>
+        i.type == CaptureType.photo || i.type == CaptureType.screenshot).toList();
+
+    // Apply sub-filter
+    if (_imageFilter == 'photos') {
+      items = items.where((i) => i.type == CaptureType.photo).toList();
+    } else if (_imageFilter == 'screenshots') {
+      items = items.where((i) => i.type == CaptureType.screenshot).toList();
+    }
+
+    // Apply category filter if set
+    if (_selectedCategory != null) {
+      items = items.where((i) => i.category == _selectedCategory).toList();
+    }
+
+    // Apply search
+    if (_localSearch.isNotEmpty) {
+      final lower = _localSearch.toLowerCase();
+      items = items.where((i) {
+        return (i.title?.toLowerCase().contains(lower) ?? false) ||
+            (i.rawText?.toLowerCase().contains(lower) ?? false) ||
+            (i.summary?.toLowerCase().contains(lower) ?? false) ||
+            i.tags.any((t) => t.toLowerCase().contains(lower));
+      }).toList();
+    }
+
+    return items;
   }
 
   @override
@@ -42,19 +72,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
           : null,
       body: Consumer<AppProvider>(
         builder: (context, provider, _) {
-          var items = _selectedCategory != null
-              ? provider.getItemsByCategory(_selectedCategory!)
-              : provider.activeItems;
-
-          if (_localSearch.isNotEmpty) {
-            final lower = _localSearch.toLowerCase();
-            items = items.where((i) {
-              return (i.title?.toLowerCase().contains(lower) ?? false) ||
-                  (i.rawText?.toLowerCase().contains(lower) ?? false) ||
-                  (i.summary?.toLowerCase().contains(lower) ?? false) ||
-                  i.tags.any((t) => t.toLowerCase().contains(lower));
-            }).toList();
-          }
+          final items = _getImageItems(provider);
+          final photoCount = provider.activeItems
+              .where((i) => i.type == CaptureType.photo).length;
+          final screenshotCount = provider.activeItems
+              .where((i) => i.type == CaptureType.screenshot).length;
+          final totalImages = photoCount + screenshotCount;
 
           return CustomScrollView(
             slivers: [
@@ -65,34 +88,28 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Row(
                       children: [
-                        const Text(
-                          'Library',
-                          style: TextStyle(
-                            color: MijigiColors.textPrimary,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Images',
+                              style: TextStyle(
+                                color: MijigiColors.textPrimary,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            Text(
+                              '$totalImages images',
+                              style: const TextStyle(
+                                color: MijigiColors.textTertiary,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         ),
                         const Spacer(),
-                        GestureDetector(
-                          onTap: () => setState(() => _showGrid = !_showGrid),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: MijigiColors.surface,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: MijigiColors.border),
-                            ),
-                            child: Icon(
-                              _showGrid
-                                  ? Icons.grid_view_rounded
-                                  : Icons.view_list_rounded,
-                              color: MijigiColors.textSecondary,
-                              size: 20,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -108,17 +125,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     vertical: isSubPage ? 8 : 0,
                   ),
                   child: MijigiSearchBar(
-                    hint: _selectedCategory != null
-                        ? 'Search ${_categoryTitle(_selectedCategory!).toLowerCase()}...'
-                        : 'Search library...',
+                    hint: 'Search images...',
                     onChanged: (q) => setState(() => _localSearch = q),
                   ),
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-              // Category filter chips (only on main library)
-              if (!isSubPage && provider.activeCategories.isNotEmpty) ...[
+              // Image type filter (Photos / Screenshots)
+              if (!isSubPage) ...[
                 SliverToBoxAdapter(
                   child: SizedBox(
                     height: 36,
@@ -126,18 +141,33 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       children: [
-                        _buildFilterChip('All', _selectedCategory == null, () {
-                          setState(() => _selectedCategory = null);
+                        _buildFilterChip('All ($totalImages)', _imageFilter == 'all', () {
+                          setState(() { _imageFilter = 'all'; _selectedCategory = null; });
                         }),
                         const SizedBox(width: 8),
-                        ...provider.activeCategories.map((entry) {
+                        _buildFilterChip('Photos ($photoCount)', _imageFilter == 'photos', () {
+                          setState(() { _imageFilter = 'photos'; _selectedCategory = null; });
+                        }),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Screenshots ($screenshotCount)', _imageFilter == 'screenshots', () {
+                          setState(() { _imageFilter = 'screenshots'; _selectedCategory = null; });
+                        }),
+                        const SizedBox(width: 16),
+                        // Category filters
+                        ...provider.activeCategories
+                            .where((e) => provider.activeItems.any((i) =>
+                                (i.type == CaptureType.photo || i.type == CaptureType.screenshot) &&
+                                i.category == e.key))
+                            .map((entry) {
                           return Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: _buildFilterChip(
                               _categoryTitle(entry.key),
                               _selectedCategory == entry.key,
-                              () => setState(
-                                  () => _selectedCategory = entry.key),
+                              () => setState(() {
+                                _selectedCategory = _selectedCategory == entry.key ? null : entry.key;
+                                _imageFilter = 'all';
+                              }),
                             ),
                           );
                         }),
@@ -148,27 +178,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 const SliverToBoxAdapter(child: SizedBox(height: 16)),
               ],
 
-              // Items
+              // Items - compact strip list
               if (items.isEmpty)
                 SliverToBoxAdapter(child: _buildEmpty())
-              else if (_showGrid)
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  sliver: SliverMasonryGrid.count(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childCount: items.length,
-                    itemBuilder: (context, index) {
-                      return CaptureCard(
-                        item: items[index],
-                        onTap: () => _openItem(items[index]),
-                        onLongPress: () =>
-                            _showActions(provider, items[index]),
-                      );
-                    },
-                  ),
-                )
               else
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -176,7 +188,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.only(bottom: 8),
                           child: CaptureCard(
                             item: items[index],
                             onTap: () => _openItem(items[index]),

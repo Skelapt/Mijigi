@@ -21,153 +21,132 @@ class CaptureCard extends StatelessWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       child: Container(
+        height: 64,
         decoration: BoxDecoration(
           color: MijigiColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: MijigiColors.border),
         ),
         clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            if (item.hasImage && item.filePath != null) _buildImage(),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      _buildCategoryChip(),
-                      const Spacer(),
-                      if (item.isPinned)
-                        const Icon(
-                          Icons.push_pin_rounded,
-                          size: 14,
-                          color: MijigiColors.primary,
-                        ),
-                      if (!item.isProcessed)
-                        const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.5,
-                            color: MijigiColors.accent,
-                          ),
-                        ),
-                    ],
+            // Thumbnail
+            if (item.hasImage && item.filePath != null)
+              SizedBox(
+                width: 64,
+                height: 64,
+                child: Image.file(
+                  File(item.filePath!),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: MijigiColors.surfaceLight,
+                    child: const Icon(Icons.image_not_supported_rounded,
+                        color: MijigiColors.textTertiary, size: 20),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    item.displayTitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: MijigiColors.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (item.rawText != null && item.rawText!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
+                ),
+              )
+            else
+              Container(
+                width: 64,
+                height: 64,
+                color: _getCategoryColor().withValues(alpha: 0.08),
+                child: Icon(
+                  _getTypeIcon(),
+                  color: _getCategoryColor(),
+                  size: 22,
+                ),
+              ),
+
+            // Text content
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                     Text(
-                      item.rawText!,
-                      maxLines: 3,
+                      _getDisplayLine(),
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: MijigiColors.textSecondary,
-                        fontSize: 12,
-                        height: 1.4,
+                        color: MijigiColors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Text(
+                          item.categoryLabel,
+                          style: TextStyle(
+                            color: _getCategoryColor(),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Text(' \u2022 ', style: TextStyle(
+                            color: MijigiColors.textTertiary, fontSize: 11)),
+                        Text(
+                          _timeAgo(),
+                          style: const TextStyle(
+                            color: MijigiColors.textTertiary,
+                            fontSize: 11,
+                          ),
+                        ),
+                        if (!item.isProcessed) ...[
+                          const SizedBox(width: 6),
+                          const SizedBox(
+                            width: 10, height: 10,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 1.5, color: MijigiColors.accent,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
-                  const SizedBox(height: 8),
-                  _buildFooter(),
-                ],
+                ),
               ),
             ),
+
+            // Pin indicator
+            if (item.isPinned)
+              const Padding(
+                padding: EdgeInsets.only(right: 12),
+                child: Icon(Icons.push_pin_rounded,
+                    size: 14, color: MijigiColors.primary),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildImage() {
-    return AspectRatio(
-      aspectRatio: 16 / 10,
-      child: Image.file(
-        File(item.filePath!),
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(
-          color: MijigiColors.surfaceLight,
-          child: const Center(
-            child: Icon(Icons.image_not_supported_rounded,
-                color: MijigiColors.textTertiary),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryChip() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: _getCategoryColor().withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        item.categoryLabel,
-        style: TextStyle(
-          color: _getCategoryColor(),
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFooter() {
-    final now = DateTime.now();
-    final diff = now.difference(item.createdAt);
-    String timeAgo;
-    if (diff.inMinutes < 1) {
-      timeAgo = 'Just now';
-    } else if (diff.inHours < 1) {
-      timeAgo = '${diff.inMinutes}m ago';
-    } else if (diff.inDays < 1) {
-      timeAgo = '${diff.inHours}h ago';
-    } else if (diff.inDays < 7) {
-      timeAgo = '${diff.inDays}d ago';
-    } else {
-      timeAgo = '${item.createdAt.day}/${item.createdAt.month}/${item.createdAt.year}';
+  /// First meaningful line from OCR text, title, or fallback
+  String _getDisplayLine() {
+    if (item.title != null && item.title!.trim().isNotEmpty) {
+      return item.title!.trim();
     }
+    if (item.rawText != null && item.rawText!.trim().isNotEmpty) {
+      // Get first non-empty line
+      final lines = item.rawText!.split('\n').where((l) => l.trim().isNotEmpty);
+      if (lines.isNotEmpty) {
+        final first = lines.first.trim();
+        return first.length > 60 ? '${first.substring(0, 60)}...' : first;
+      }
+    }
+    return item.displayTitle;
+  }
 
-    return Row(
-      children: [
-        Icon(
-          _getTypeIcon(),
-          size: 12,
-          color: MijigiColors.textTertiary,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          timeAgo,
-          style: const TextStyle(
-            color: MijigiColors.textTertiary,
-            fontSize: 11,
-          ),
-        ),
-        if (item.extractedData != null && item.extractedData!.isNotEmpty) ...[
-          const Spacer(),
-          Icon(
-            Icons.auto_awesome_rounded,
-            size: 12,
-            color: MijigiColors.accent.withValues(alpha: 0.7),
-          ),
-        ],
-      ],
-    );
+  String _timeAgo() {
+    final diff = DateTime.now().difference(item.createdAt);
+    if (diff.inMinutes < 1) return 'now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m';
+    if (diff.inDays < 1) return '${diff.inHours}h';
+    if (diff.inDays < 7) return '${diff.inDays}d';
+    return '${item.createdAt.day}/${item.createdAt.month}';
   }
 
   IconData _getTypeIcon() => switch (item.type) {

@@ -53,8 +53,8 @@ class ShellScreen extends StatelessWidget {
                       onTap: () => provider.setTab(0),
                     ),
                     _NavItem(
-                      icon: Icons.layers_rounded,
-                      label: 'Library',
+                      icon: Icons.photo_library_rounded,
+                      label: 'Images',
                       isActive: provider.currentTab == 1,
                       onTap: () => provider.setTab(1),
                     ),
