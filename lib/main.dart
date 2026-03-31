@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/app_provider.dart';
-import 'providers/agent_provider.dart';
 import 'theme/app_theme.dart';
 import 'screens/shell_screen.dart';
 
@@ -24,11 +23,8 @@ class MijigiApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AppProvider()..init()),
-        ChangeNotifierProvider(create: (_) => AgentProvider()..init()),
-      ],
+    return ChangeNotifierProvider(
+      create: (_) => AppProvider()..init(),
       child: MaterialApp(
         title: 'Mijigi',
         debugShowCheckedModeBanner: false,
@@ -57,11 +53,7 @@ class _SplashGate extends StatelessWidget {
                     width: 72,
                     height: 72,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [MijigiColors.primary, MijigiColors.accent],
-                      ),
+                      color: MijigiColors.primary,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Icon(
@@ -78,14 +70,6 @@ class _SplashGate extends StatelessWidget {
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Capture anything. Find everything.',
-                    style: TextStyle(
-                      color: MijigiColors.textTertiary,
-                      fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 32),

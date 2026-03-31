@@ -43,14 +43,16 @@ class SearchService {
         score += 10;
       }
 
-      // Raw text match
-      if (item.rawText?.toLowerCase().contains(term) == true) {
-        score += 5;
+      // Image label match - this is key for visual search
+      for (final label in item.labels) {
+        if (label.contains(term) || term.contains(label)) {
+          score += 8;
+        }
       }
 
-      // Summary match
-      if (item.summary?.toLowerCase().contains(term) == true) {
-        score += 4;
+      // Raw text match (OCR)
+      if (item.rawText?.toLowerCase().contains(term) == true) {
+        score += 5;
       }
 
       // Tag match
@@ -58,12 +60,7 @@ class SearchService {
         score += 7;
       }
 
-      // Category match
-      if (item.categoryLabel.toLowerCase().contains(term)) {
-        score += 3;
-      }
-
-      // Extracted data match
+      // Extracted data match (emails, phones, amounts)
       if (item.extractedData != null) {
         final dataStr = item.extractedData.toString().toLowerCase();
         if (dataStr.contains(term)) {
@@ -83,9 +80,18 @@ class SearchService {
   }
 
   String _getMatchContext(CaptureItem item, List<String> terms) {
-    // Return the most relevant text snippet
-    final searchIn = item.rawText ?? item.title ?? item.summary ?? '';
-    if (searchIn.isEmpty) return item.categoryLabel;
+    // Check labels first
+    for (final term in terms) {
+      for (final label in item.labels) {
+        if (label.contains(term)) return 'Visual: $label';
+      }
+    }
+
+    final searchIn = item.rawText ?? item.title ?? '';
+    if (searchIn.isEmpty) {
+      if (item.labels.isNotEmpty) return item.labels.take(3).join(', ');
+      return item.displayTitle;
+    }
 
     for (final term in terms) {
       final idx = searchIn.toLowerCase().indexOf(term);

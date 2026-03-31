@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/capture_item.dart';
 import '../../providers/app_provider.dart';
-import '../../services/file_scanner_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/mijigi_search_bar.dart';
 import '../item_detail/item_detail_screen.dart';
@@ -15,12 +14,8 @@ class FilesScreen extends StatefulWidget {
 }
 
 class _FilesScreenState extends State<FilesScreen> {
-  bool _isScanning = false;
-  String _scanStatus = '';
   String _selectedFilter = 'all';
   String _localSearch = '';
-  StorageBreakdown? _storageInfo;
-  List<DuplicateGroup>? _duplicates;
 
   /// Get document/file items from persisted storage (not images)
   List<CaptureItem> _getFileItems(AppProvider provider) {
@@ -127,60 +122,6 @@ class _FilesScreenState extends State<FilesScreen> {
                           ],
                         ),
                         const Spacer(),
-                        // Scan button
-                        GestureDetector(
-                          onTap: _isScanning ? null : () => _startScan(provider),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: _isScanning
-                                  ? MijigiColors.surface
-                                  : MijigiColors.accent.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: _isScanning
-                                    ? MijigiColors.border
-                                    : MijigiColors.accent.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (_isScanning) ...[
-                                  SizedBox(
-                                    width: 14,
-                                    height: 14,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: MijigiColors.accent,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'Scanning...',
-                                    style: TextStyle(
-                                      color: MijigiColors.textSecondary,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ] else ...[
-                                  const Icon(Icons.radar_rounded,
-                                      color: MijigiColors.accent, size: 16),
-                                  const SizedBox(width: 6),
-                                  const Text(
-                                    'Scan Device',
-                                    style: TextStyle(
-                                      color: MijigiColors.accent,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ],
@@ -189,56 +130,6 @@ class _FilesScreenState extends State<FilesScreen> {
             ),
 
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // Scan status
-            if (_isScanning)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: MijigiColors.accent.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: MijigiColors.accent.withValues(alpha: 0.15)),
-                    ),
-                    child: Text(
-                      _scanStatus,
-                      style: const TextStyle(
-                        color: MijigiColors.textSecondary,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-            if (_isScanning)
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
-
-            // Storage overview (after scan)
-            if (_storageInfo != null)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: _buildStorageCard(),
-                ),
-              ),
-
-            if (_storageInfo != null)
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
-
-            // Duplicates warning
-            if (_duplicates != null && _duplicates!.isNotEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: _buildDuplicatesCard(),
-                ),
-              ),
-
-            if (_duplicates != null && _duplicates!.isNotEmpty)
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
             // Search
             SliverToBoxAdapter(
@@ -270,12 +161,12 @@ class _FilesScreenState extends State<FilesScreen> {
                     ],
                     if (docCount > 0) ...[
                       _buildChip('Documents', docCount, _selectedFilter == 'docs',
-                          MijigiColors.categoryDocument, () => setState(() => _selectedFilter = 'docs')),
+                          MijigiColors.fileDoc, () => setState(() => _selectedFilter = 'docs')),
                       const SizedBox(width: 8),
                     ],
                     if (spreadsheetCount > 0) ...[
                       _buildChip('Spreadsheets', spreadsheetCount, _selectedFilter == 'spreadsheets',
-                          MijigiColors.categoryFinancial, () => setState(() => _selectedFilter = 'spreadsheets')),
+                          MijigiColors.fileSheet, () => setState(() => _selectedFilter = 'spreadsheets')),
                       const SizedBox(width: 8),
                     ],
                     if (noteCount > 0) ...[
@@ -285,7 +176,7 @@ class _FilesScreenState extends State<FilesScreen> {
                     ],
                     if (clipboardCount > 0)
                       _buildChip('Clipboard', clipboardCount, _selectedFilter == 'clipboard',
-                          MijigiColors.categoryWork, () => setState(() => _selectedFilter = 'clipboard')),
+                          MijigiColors.fileNote, () => setState(() => _selectedFilter = 'clipboard')),
                   ],
                 ),
               ),
@@ -395,139 +286,6 @@ class _FilesScreenState extends State<FilesScreen> {
     );
   }
 
-  Widget _buildStorageCard() {
-    final s = _storageInfo!;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: MijigiColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: MijigiColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.storage_rounded, size: 16, color: MijigiColors.accent),
-              const SizedBox(width: 8),
-              const Text('Device Storage', style: TextStyle(
-                color: MijigiColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w700,
-              )),
-              const Spacer(),
-              Text(s.totalSizeFormatted, style: const TextStyle(
-                color: MijigiColors.accent, fontSize: 14, fontWeight: FontWeight.w800,
-              )),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: SizedBox(
-              height: 8,
-              child: Row(
-                children: [
-                  if (s.documentCount > 0) _BarSegment(flex: s.documentCount, color: MijigiColors.categoryDocument),
-                  if (s.imageCount > 0) _BarSegment(flex: s.imageCount, color: MijigiColors.categoryPersonal),
-                  if (s.audioCount > 0) _BarSegment(flex: s.audioCount, color: MijigiColors.categoryWork),
-                  if (s.videoCount > 0) _BarSegment(flex: s.videoCount, color: MijigiColors.categoryTravel),
-                  if (s.otherCount > 0) _BarSegment(flex: s.otherCount, color: MijigiColors.textTertiary),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 14, runSpacing: 6,
-            children: [
-              _LegendDot(color: MijigiColors.categoryDocument, label: 'Docs ${s.documentCount}'),
-              _LegendDot(color: MijigiColors.categoryPersonal, label: 'Images ${s.imageCount}'),
-              _LegendDot(color: MijigiColors.categoryWork, label: 'Audio ${s.audioCount}'),
-              _LegendDot(color: MijigiColors.categoryTravel, label: 'Video ${s.videoCount}'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDuplicatesCard() {
-    final totalWasted = _duplicates!.fold<int>(0, (sum, d) => sum + d.wastedBytes);
-    final formatted = totalWasted < 1024 * 1024
-        ? '${(totalWasted / 1024).toStringAsFixed(0)}KB'
-        : '${(totalWasted / (1024 * 1024)).toStringAsFixed(1)}MB';
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: MijigiColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: MijigiColors.warning.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.file_copy_rounded, color: MijigiColors.warning, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              '${_duplicates!.length} duplicate groups found \u2022 $formatted wasted',
-              style: const TextStyle(color: MijigiColors.warning, fontSize: 13, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _startScan(AppProvider provider) async {
-    final scanner = FileScannerService();
-    final hasPermission = await scanner.requestPermission();
-    if (!hasPermission) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Storage access denied. Enable in Settings.'),
-            backgroundColor: MijigiColors.surfaceLight,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
-      return;
-    }
-
-    setState(() { _isScanning = true; _scanStatus = 'Scanning device files...'; });
-
-    final files = await scanner.scanDeviceFiles();
-    setState(() {
-      _storageInfo = scanner.analyzeStorage(files);
-      _scanStatus = 'Checking for duplicates...';
-    });
-
-    final duplicates = await scanner.findDuplicates(files);
-    setState(() { _duplicates = duplicates; _scanStatus = 'Importing new files...'; });
-
-    // Import documents into Mijigi storage
-    final existingPaths = provider.items
-        .where((i) => i.filePath != null)
-        .map((i) => i.filePath!)
-        .toSet();
-
-    await for (final progress in scanner.importFiles(
-      storage: provider.storage,
-      existingFilePaths: existingPaths,
-    )) {
-      setState(() {
-        _scanStatus = 'Processing ${progress.processed}/${progress.totalFound}: ${progress.currentFile}';
-      });
-
-      if (progress.status == FileScanStatus.complete) {
-        provider.reloadItems();
-      }
-    }
-
-    setState(() { _isScanning = false; });
-  }
 
   void _openItem(CaptureItem item) {
     Navigator.push(
@@ -679,10 +437,10 @@ class _FileItemCard extends StatelessWidget {
   Color get _iconColor {
     final ext = _fileExtension.toLowerCase();
     if (ext == 'pdf') return MijigiColors.error;
-    if (['doc', 'docx', 'rtf', 'odt'].contains(ext)) return MijigiColors.categoryDocument;
-    if (['xls', 'xlsx', 'csv', 'ods'].contains(ext)) return MijigiColors.categoryFinancial;
+    if (['doc', 'docx', 'rtf', 'odt'].contains(ext)) return MijigiColors.fileDoc;
+    if (['xls', 'xlsx', 'csv', 'ods'].contains(ext)) return MijigiColors.fileSheet;
     if (item.type == CaptureType.note) return MijigiColors.accent;
-    if (item.type == CaptureType.clipboard) return MijigiColors.categoryWork;
+    if (item.type == CaptureType.clipboard) return MijigiColors.fileNote;
     if (item.type == CaptureType.link) return MijigiColors.primary;
     return MijigiColors.textSecondary;
   }
@@ -712,34 +470,3 @@ class _FileItemCard extends StatelessWidget {
   }
 }
 
-class _BarSegment extends StatelessWidget {
-  final int flex;
-  final Color color;
-  const _BarSegment({required this.flex, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(flex: flex, child: Container(color: color));
-  }
-}
-
-class _LegendDot extends StatelessWidget {
-  final Color color;
-  final String label;
-  const _LegendDot({required this.color, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8, height: 8,
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
-        ),
-        const SizedBox(width: 4),
-        Text(label, style: const TextStyle(color: MijigiColors.textSecondary, fontSize: 11)),
-      ],
-    );
-  }
-}

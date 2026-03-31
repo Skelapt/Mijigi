@@ -4,10 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../models/capture_item.dart';
-import '../../models/action_suggestion.dart';
 import '../../providers/app_provider.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/action_suggestion_card.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   final String itemId;
@@ -19,31 +17,6 @@ class ItemDetailScreen extends StatefulWidget {
 }
 
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
-  late TextEditingController _titleController;
-  late TextEditingController _textController;
-  bool _isEditing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController();
-    _textController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _textController.dispose();
-    super.dispose();
-  }
-
-  void _loadItem(CaptureItem item) {
-    if (!_isEditing) {
-      _titleController.text = item.title ?? '';
-      _textController.text = item.rawText ?? '';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
@@ -61,10 +34,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           );
         }
 
-        _loadItem(item);
-
-        final actions = provider.getActionsForItem(item.id);
-
         return Scaffold(
           backgroundColor: MijigiColors.background,
           appBar: AppBar(
@@ -74,99 +43,49 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
-              if (_isEditing)
-                TextButton(
-                  onPressed: () => _save(provider, item),
-                  child: const Text(
-                    'Save',
-                    style: TextStyle(
-                      color: MijigiColors.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                )
-              else ...[
-                IconButton(
-                  icon: const Icon(Icons.edit_rounded, size: 20),
-                  onPressed: () => setState(() => _isEditing = true),
+              IconButton(
+                icon: Icon(
+                  item.isPinned
+                      ? Icons.push_pin_rounded
+                      : Icons.push_pin_outlined,
+                  size: 20,
+                  color: item.isPinned ? MijigiColors.primary : null,
                 ),
-                IconButton(
-                  icon: Icon(
-                    item.isPinned
-                        ? Icons.push_pin_rounded
-                        : Icons.push_pin_outlined,
-                    size: 20,
-                    color: item.isPinned ? MijigiColors.primary : null,
-                  ),
-                  onPressed: () => provider.togglePin(item.id),
-                ),
-                PopupMenuButton<String>(
-                  color: MijigiColors.surfaceLight,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  onSelected: (value) =>
-                      _handleAction(value, provider, item),
-                  itemBuilder: (_) => [
-                    const PopupMenuItem(
+                onPressed: () => provider.togglePin(item.id),
+              ),
+              PopupMenuButton<String>(
+                color: MijigiColors.surfaceLight,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                onSelected: (value) => _handleAction(value, provider, item),
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
                       value: 'share',
-                      child: Row(
-                        children: [
-                          Icon(Icons.share_rounded,
-                              size: 18, color: MijigiColors.textSecondary),
-                          SizedBox(width: 10),
-                          Text('Share'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
+                      child: Row(children: [
+                        Icon(Icons.share_rounded,
+                            size: 18, color: MijigiColors.textSecondary),
+                        SizedBox(width: 10),
+                        Text('Share'),
+                      ])),
+                  const PopupMenuItem(
                       value: 'copy',
-                      child: Row(
-                        children: [
-                          Icon(Icons.copy_rounded,
-                              size: 18, color: MijigiColors.textSecondary),
-                          SizedBox(width: 10),
-                          Text('Copy text'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'reprocess',
-                      child: Row(
-                        children: [
-                          Icon(Icons.refresh_rounded,
-                              size: 18, color: MijigiColors.textSecondary),
-                          SizedBox(width: 10),
-                          Text('Re-scan OCR'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'archive',
-                      child: Row(
-                        children: [
-                          Icon(Icons.archive_rounded,
-                              size: 18, color: MijigiColors.warning),
-                          SizedBox(width: 10),
-                          Text('Archive'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
+                      child: Row(children: [
+                        Icon(Icons.copy_rounded,
+                            size: 18, color: MijigiColors.textSecondary),
+                        SizedBox(width: 10),
+                        Text('Copy text'),
+                      ])),
+                  const PopupMenuItem(
                       value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_rounded,
-                              size: 18, color: MijigiColors.error),
-                          SizedBox(width: 10),
-                          Text('Delete',
-                              style: TextStyle(color: MijigiColors.error)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                      child: Row(children: [
+                        Icon(Icons.delete_rounded,
+                            size: 18, color: MijigiColors.error),
+                        SizedBox(width: 10),
+                        Text('Delete',
+                            style: TextStyle(color: MijigiColors.error)),
+                      ])),
+                ],
+              ),
             ],
           ),
           body: SingleChildScrollView(
@@ -177,7 +96,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 // Image
                 if (item.hasImage && item.filePath != null) ...[
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     child: Image.file(
                       File(item.filePath!),
                       width: double.infinity,
@@ -186,193 +105,96 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         height: 200,
                         decoration: BoxDecoration(
                           color: MijigiColors.surfaceLight,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Center(
-                          child: Icon(Icons.image_not_supported_rounded,
-                              color: MijigiColors.textTertiary, size: 40),
-                        ),
+                            child: Icon(Icons.image_not_supported_rounded,
+                                color: MijigiColors.textTertiary, size: 40)),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                 ],
 
-                // Category & Type badges
-                Row(
-                  children: [
-                    _buildBadge(
-                        item.categoryLabel, _getCategoryColor(item.category)),
-                    const SizedBox(width: 8),
-                    _buildBadge(item.type.name, MijigiColors.textTertiary),
-                    const Spacer(),
-                    if (!item.isProcessed)
-                      Container(
+                // Labels (what ML Kit sees in the photo)
+                if (item.labels.isNotEmpty) ...[
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: item.labels.map((label) {
+                      return Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                            horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: MijigiColors.accent.withValues(alpha: 0.12),
+                          color: MijigiColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: MijigiColors.primary
+                                  .withValues(alpha: 0.2)),
                         ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              width: 10,
-                              height: 10,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
-                                color: MijigiColors.accent,
-                              ),
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Processing',
-                              style: TextStyle(
-                                  color: MijigiColors.accent, fontSize: 11),
-                            ),
-                          ],
+                        child: Text(
+                          label,
+                          style: const TextStyle(
+                            color: MijigiColors.primaryLight,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
-                // Title
-                if (_isEditing)
-                  TextField(
-                    controller: _titleController,
-                    style: const TextStyle(
-                      color: MijigiColors.textPrimary,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Title',
-                      hintStyle: TextStyle(
-                        color:
-                            MijigiColors.textTertiary.withValues(alpha: 0.5),
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  )
-                else
-                  Text(
-                    item.displayTitle,
-                    style: const TextStyle(
-                      color: MijigiColors.textPrimary,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
+                // Extracted data cards (one-tap copy)
+                if (item.extractedData != null &&
+                    item.extractedData!.isNotEmpty) ...[
+                  ...item.extractedData!.entries.map((entry) {
+                    return _buildCopyCard(entry.key, entry.value);
+                  }),
+                  const SizedBox(height: 8),
+                ],
+
+                // OCR text
+                if (item.rawText != null && item.rawText!.isNotEmpty) ...[
+                  const Text(
+                    'Text',
+                    style: TextStyle(
+                      color: MijigiColors.textTertiary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: MijigiColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: MijigiColors.border),
+                    ),
+                    child: SelectableText(
+                      item.rawText!,
+                      style: const TextStyle(
+                        color: MijigiColors.textPrimary,
+                        fontSize: 14,
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                ],
 
-                const SizedBox(height: 4),
+                const SizedBox(height: 12),
+
+                // Metadata
                 Text(
                   _formatDate(item.createdAt),
                   style: const TextStyle(
                     color: MijigiColors.textTertiary,
-                    fontSize: 13,
+                    fontSize: 12,
                   ),
                 ),
-
-                // === ACTION SUGGESTIONS ===
-                if (actions.isNotEmpty && !_isEditing) ...[
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Suggested Actions',
-                    style: TextStyle(
-                      color: MijigiColors.textSecondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...actions.take(5).map((action) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: ActionSuggestionCard(
-                          action: action,
-                          onExecute: () =>
-                              _executeAction(context, action),
-                        ),
-                      )),
-                ],
-
-                const SizedBox(height: 20),
-
-                // Text content
-                if (item.rawText != null && item.rawText!.isNotEmpty) ...[
-                  const Text(
-                    'Extracted Text',
-                    style: TextStyle(
-                      color: MijigiColors.textSecondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (_isEditing)
-                    TextField(
-                      controller: _textController,
-                      maxLines: null,
-                      style: const TextStyle(
-                        color: MijigiColors.textPrimary,
-                        fontSize: 15,
-                        height: 1.6,
-                      ),
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: MijigiColors.border),
-                        ),
-                        contentPadding: const EdgeInsets.all(14),
-                      ),
-                    )
-                  else
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: MijigiColors.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: MijigiColors.border),
-                      ),
-                      child: SelectableText(
-                        item.rawText!,
-                        style: const TextStyle(
-                          color: MijigiColors.textPrimary,
-                          fontSize: 15,
-                          height: 1.6,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 20),
-                ],
-
-                // Extracted data
-                if (item.extractedData != null &&
-                    item.extractedData!.isNotEmpty) ...[
-                  const Text(
-                    'Extracted Data',
-                    style: TextStyle(
-                      color: MijigiColors.textSecondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...item.extractedData!.entries
-                      .where((e) => e.key != 'deadlines')
-                      .map((entry) {
-                    return _buildDataSection(entry.key, entry.value);
-                  }),
-
-                  // Deadlines section (special formatting)
-                  if (item.extractedData!.containsKey('deadlines'))
-                    _buildDeadlinesSection(
-                        item.extractedData!['deadlines'] as List),
-                ],
               ],
             ),
           ),
@@ -381,116 +203,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     );
   }
 
-  Widget _buildDeadlinesSection(List deadlines) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: MijigiColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: MijigiColors.warning.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.schedule_rounded,
-                  size: 16, color: MijigiColors.warning),
-              SizedBox(width: 6),
-              Text(
-                'DEADLINES',
-                style: TextStyle(
-                  color: MijigiColors.warning,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ...deadlines.map((dl) {
-            if (dl is! Map) return const SizedBox.shrink();
-            final label = dl['label'] ?? 'Deadline';
-            final dateStr = dl['date'] as String?;
-            final type = dl['type'] ?? 'general';
-            String dateLabel = dateStr ?? '';
-            if (dateStr != null) {
-              final date = DateTime.tryParse(dateStr);
-              if (date != null) {
-                final days = date.difference(DateTime.now()).inDays;
-                if (days < 0) {
-                  dateLabel = 'Expired ${-days}d ago';
-                } else if (days == 0) {
-                  dateLabel = 'Today!';
-                } else if (days == 1) {
-                  dateLabel = 'Tomorrow';
-                } else {
-                  dateLabel = 'In $days days';
-                }
-              }
-            }
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: MijigiColors.warning,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '$label ($type)',
-                      style: const TextStyle(
-                        color: MijigiColors.textPrimary,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    dateLabel,
-                    style: const TextStyle(
-                      color: MijigiColors.warning,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBadge(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDataSection(String key, dynamic value) {
+  /// Build a one-tap copy card for extracted data (emails, phones, amounts)
+  Widget _buildCopyCard(String key, dynamic value) {
     final items = value is List ? value.cast<String>() : [value.toString()];
     final icon = switch (key) {
       'amounts' => Icons.attach_money_rounded,
@@ -498,10 +212,15 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       'phones' => Icons.phone_rounded,
       'emails' => Icons.email_rounded,
       'urls' => Icons.link_rounded,
-      'names' => Icons.person_rounded,
-      'addresses' => Icons.location_on_rounded,
-      'references' => Icons.tag_rounded,
       _ => Icons.data_object_rounded,
+    };
+    final color = switch (key) {
+      'amounts' => MijigiColors.fileSheet,
+      'phones' => MijigiColors.primary,
+      'emails' => MijigiColors.fileNote,
+      'dates' => MijigiColors.warning,
+      'urls' => MijigiColors.accent,
+      _ => MijigiColors.textSecondary,
     };
 
     return Container(
@@ -509,22 +228,22 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: MijigiColors.surface,
+        color: color.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: MijigiColors.border),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 16, color: MijigiColors.accent),
+              Icon(icon, size: 14, color: color),
               const SizedBox(width: 6),
               Text(
                 key.toUpperCase(),
-                style: const TextStyle(
-                  color: MijigiColors.textTertiary,
-                  fontSize: 11,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.5,
                 ),
@@ -532,47 +251,42 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             ],
           ),
           const SizedBox(height: 6),
-          ...items.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: GestureDetector(
-                  onTap: () {
-                    Clipboard.setData(ClipboardData(text: item));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Copied'),
-                        backgroundColor: MijigiColors.surfaceLight,
-                        behavior: SnackBarBehavior.floating,
-                        duration: const Duration(seconds: 1),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                      ),
-                    );
-                  },
-                  child: Text(
-                    item,
-                    style: const TextStyle(
-                      color: MijigiColors.textPrimary,
-                      fontSize: 14,
+          ...items.map((item) => GestureDetector(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: item));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Copied: $item'),
+                      duration: const Duration(seconds: 1),
+                      backgroundColor: MijigiColors.surfaceLight,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item,
+                          style: const TextStyle(
+                            color: MijigiColors.textPrimary,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.content_copy_rounded,
+                          size: 14, color: MijigiColors.textTertiary),
+                    ],
                   ),
                 ),
               )),
         ],
       ),
     );
-  }
-
-  void _save(AppProvider provider, CaptureItem item) {
-    final updated = item.copyWith(
-      title: _titleController.text.trim().isNotEmpty
-          ? _titleController.text.trim()
-          : null,
-      rawText: _textController.text.trim().isNotEmpty
-          ? _textController.text.trim()
-          : null,
-    );
-    provider.updateItem(updated);
-    setState(() => _isEditing = false);
   }
 
   void _handleAction(String action, AppProvider provider, CaptureItem item) {
@@ -595,30 +309,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           );
         }
         break;
-      case 'reprocess':
-        item.isProcessed = false;
-        provider.updateItem(item);
-        break;
-      case 'archive':
-        provider.archiveItem(item.id);
-        Navigator.pop(context);
-        break;
       case 'delete':
         provider.deleteItem(item.id);
         Navigator.pop(context);
         break;
     }
-  }
-
-  void _executeAction(BuildContext context, ActionSuggestion action) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${action.actionVerb}: ${action.label}'),
-        backgroundColor: MijigiColors.surfaceLight,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
   }
 
   String _formatDate(DateTime date) {
@@ -631,17 +326,4 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     final minute = date.minute.toString().padLeft(2, '0');
     return '${months[date.month - 1]} ${date.day}, ${date.year} at $hour:$minute $amPm';
   }
-
-  Color _getCategoryColor(ItemCategory cat) => switch (cat) {
-        ItemCategory.receipt => MijigiColors.categoryReceipt,
-        ItemCategory.document => MijigiColors.categoryDocument,
-        ItemCategory.medical => MijigiColors.categoryMedical,
-        ItemCategory.financial => MijigiColors.categoryFinancial,
-        ItemCategory.travel => MijigiColors.categoryTravel,
-        ItemCategory.work => MijigiColors.categoryWork,
-        ItemCategory.personal => MijigiColors.categoryPersonal,
-        ItemCategory.food => MijigiColors.categoryFood,
-        ItemCategory.shopping => MijigiColors.categoryShopping,
-        _ => MijigiColors.textTertiary,
-      };
 }

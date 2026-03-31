@@ -33,6 +33,7 @@ class CaptureItem {
   CaptureType type;
   ItemCategory category;
   List<String> tags;
+  List<String> labels; // ML Kit image labels (e.g. "dog", "food", "car")
   String? filePath;
   String? thumbnailPath;
   DateTime createdAt;
@@ -50,6 +51,7 @@ class CaptureItem {
     this.type = CaptureType.note,
     this.category = ItemCategory.uncategorised,
     this.tags = const [],
+    this.labels = const [],
     this.filePath,
     this.thumbnailPath,
     DateTime? createdAt,
@@ -63,30 +65,25 @@ class CaptureItem {
   String get displayTitle {
     if (title != null && title!.isNotEmpty) return title!;
     if (rawText != null && rawText!.isNotEmpty) {
-      final text = rawText!.trim();
-      return text.length > 50 ? '${text.substring(0, 50)}...' : text;
+      final lines = rawText!.split('\n').where((l) => l.trim().isNotEmpty);
+      if (lines.isNotEmpty) {
+        final first = lines.first.trim();
+        return first.length > 50 ? '${first.substring(0, 50)}...' : first;
+      }
     }
+    if (labels.isNotEmpty) return labels.take(3).join(', ');
     return _defaultTitle;
   }
 
-  String get _defaultTitle {
-    switch (type) {
-      case CaptureType.photo:
-        return 'Photo';
-      case CaptureType.screenshot:
-        return 'Screenshot';
-      case CaptureType.document:
-        return 'Document';
-      case CaptureType.note:
-        return 'Note';
-      case CaptureType.clipboard:
-        return 'Clipboard';
-      case CaptureType.voice:
-        return 'Voice Memo';
-      case CaptureType.link:
-        return 'Link';
-    }
-  }
+  String get _defaultTitle => switch (type) {
+    CaptureType.photo => 'Photo',
+    CaptureType.screenshot => 'Screenshot',
+    CaptureType.document => 'Document',
+    CaptureType.note => 'Note',
+    CaptureType.clipboard => 'Clipboard',
+    CaptureType.voice => 'Voice Memo',
+    CaptureType.link => 'Link',
+  };
 
   String get categoryLabel => switch (category) {
     ItemCategory.uncategorised => 'Uncategorised',
@@ -105,21 +102,14 @@ class CaptureItem {
     ItemCategory.event => 'Event',
   };
 
-  String get typeIcon => switch (type) {
-    CaptureType.photo => '📷',
-    CaptureType.screenshot => '📱',
-    CaptureType.document => '📄',
-    CaptureType.note => '📝',
-    CaptureType.clipboard => '📋',
-    CaptureType.voice => '🎙️',
-    CaptureType.link => '🔗',
-  };
-
   bool get hasImage =>
       filePath != null &&
       (type == CaptureType.photo ||
           type == CaptureType.screenshot ||
           type == CaptureType.document);
+
+  bool get isImageType =>
+      type == CaptureType.photo || type == CaptureType.screenshot;
 
   Map<String, dynamic> toMap() => {
     'id': id,
@@ -129,6 +119,7 @@ class CaptureItem {
     'type': type.index,
     'category': category.index,
     'tags': tags,
+    'labels': labels,
     'filePath': filePath,
     'thumbnailPath': thumbnailPath,
     'createdAt': createdAt.toIso8601String(),
@@ -147,6 +138,7 @@ class CaptureItem {
     type: CaptureType.values[map['type'] as int? ?? 0],
     category: ItemCategory.values[map['category'] as int? ?? 0],
     tags: (map['tags'] as List?)?.cast<String>() ?? [],
+    labels: (map['labels'] as List?)?.cast<String>() ?? [],
     filePath: map['filePath'] as String?,
     thumbnailPath: map['thumbnailPath'] as String?,
     createdAt: DateTime.parse(map['createdAt'] as String),
@@ -166,6 +158,7 @@ class CaptureItem {
     CaptureType? type,
     ItemCategory? category,
     List<String>? tags,
+    List<String>? labels,
     String? filePath,
     String? thumbnailPath,
     Map<String, dynamic>? extractedData,
@@ -181,6 +174,7 @@ class CaptureItem {
     type: type ?? this.type,
     category: category ?? this.category,
     tags: tags ?? this.tags,
+    labels: labels ?? this.labels,
     filePath: filePath ?? this.filePath,
     thumbnailPath: thumbnailPath ?? this.thumbnailPath,
     createdAt: createdAt,
