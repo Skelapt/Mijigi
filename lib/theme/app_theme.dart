@@ -24,6 +24,17 @@ class MijigiColors {
   static const fileSheet = Color(0xFF22C55E);
   static const fileNote = Color(0xFF8B5CF6);
   static const fileClipboard = Color(0xFFF59E0B);
+
+  // Category colors (used in files screen)
+  static const categoryReceipt = Color(0xFF22C55E);
+  static const categoryDocument = Color(0xFF3B82F6);
+  static const categoryMedical = Color(0xFFEC4899);
+  static const categoryFinancial = Color(0xFFF59E0B);
+  static const categoryTravel = Color(0xFF06B6D4);
+  static const categoryWork = Color(0xFF8B5CF6);
+  static const categoryPersonal = Color(0xFFF97316);
+  static const categoryFood = Color(0xFFA3E635);
+  static const categoryShopping = Color(0xFFD946EF);
 }
 
 class AppTheme {

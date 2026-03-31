@@ -256,7 +256,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   Clipboard.setData(ClipboardData(text: item));
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Copied: $item'),
+                      content: Text('Copied: $item', style: const TextStyle(color: Colors.white)),
                       duration: const Duration(seconds: 1),
                       backgroundColor: MijigiColors.surfaceLight,
                       behavior: SnackBarBehavior.floating,
@@ -300,7 +300,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           Clipboard.setData(ClipboardData(text: item.rawText!));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Copied to clipboard'),
+              content: const Text('Copied to clipboard', style: TextStyle(color: Colors.white)),
               backgroundColor: MijigiColors.surfaceLight,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(

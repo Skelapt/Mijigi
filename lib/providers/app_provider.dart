@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../models/capture_item.dart';
@@ -41,6 +42,8 @@ class AppProvider extends ChangeNotifier {
   int get totalItems => activeItems.length;
   StorageService get storage => _storage;
 
+  String? _lastClipboardText;
+
   Future<void> init() async {
     _isLoading = true;
     notifyListeners();
@@ -52,6 +55,43 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
 
     _processUnprocessedItems();
+
+    // Auto-import device photos
+    _autoImportPhotos();
+
+    // Start clipboard monitoring
+    _checkClipboard();
+  }
+
+  /// Auto-import photos on startup (pro behaviour)
+  Future<void> _autoImportPhotos() async {
+    final hasPermission = await requestPhotoPermission();
+    if (hasPermission) {
+      importDevicePhotos();
+    }
+  }
+
+  /// Check clipboard for new content and auto-save
+  Future<void> checkClipboardNow() async {
+    await _checkClipboard();
+  }
+
+  Future<void> _checkClipboard() async {
+    try {
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      final text = data?.text;
+      if (text != null && text.isNotEmpty && text != _lastClipboardText) {
+        // Check it's not already saved
+        final alreadySaved = _items.any((i) =>
+            i.type == CaptureType.clipboard && i.rawText == text);
+        if (!alreadySaved) {
+          _lastClipboardText = text;
+          await captureClipboard(text);
+        } else {
+          _lastClipboardText = text;
+        }
+      }
+    } catch (_) {}
   }
 
   void setTab(int index) {

@@ -13,9 +13,32 @@ class ClipboardScreen extends StatefulWidget {
   State<ClipboardScreen> createState() => _ClipboardScreenState();
 }
 
-class _ClipboardScreenState extends State<ClipboardScreen> {
+class _ClipboardScreenState extends State<ClipboardScreen> with WidgetsBindingObserver {
   final Set<String> _selected = {};
   bool _selectMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Check clipboard when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppProvider>().checkClipboardNow();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      context.read<AppProvider>().checkClipboardNow();
+    }
+  }
 
   List<CaptureItem> _getClipboardItems(AppProvider provider) {
     return provider.activeItems
@@ -277,7 +300,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Clipboard saved'),
+            content: const Text('Clipboard saved', style: TextStyle(color: Colors.white)),
             backgroundColor: MijigiColors.surfaceLight,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -289,7 +312,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Clipboard is empty'),
+            content: const Text('Clipboard is empty', style: TextStyle(color: Colors.white)),
             backgroundColor: MijigiColors.surfaceLight,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -305,7 +328,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
       Clipboard.setData(ClipboardData(text: item.rawText!));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Copied'),
+          content: const Text('Copied', style: TextStyle(color: Colors.white)),
           duration: const Duration(seconds: 1),
           backgroundColor: MijigiColors.surfaceLight,
           behavior: SnackBarBehavior.floating,

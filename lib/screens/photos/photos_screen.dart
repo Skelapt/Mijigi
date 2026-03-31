@@ -131,6 +131,100 @@ class _PhotosScreenState extends State<PhotosScreen> {
 
               const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
+              // Import progress banner
+              if (provider.isImporting && provider.importProgress != null)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 20, right: 20, bottom: 12),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: MijigiColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: MijigiColors.primary.withValues(alpha: 0.2)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: 14, height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: MijigiColors.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Syncing ${provider.importProgress!.processed}/${provider.importProgress!.total} photos...',
+                                  style: const TextStyle(
+                                    color: MijigiColors.textSecondary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (provider.importProgress!.message.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              provider.importProgress!.message,
+                              style: const TextStyle(color: MijigiColors.textTertiary, fontSize: 11),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: provider.importProgress!.total > 0
+                                  ? provider.importProgress!.processed / provider.importProgress!.total
+                                  : 0,
+                              backgroundColor: MijigiColors.border,
+                              color: MijigiColors.primary,
+                              minHeight: 3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Processing indicator
+              if (provider.isProcessing && !provider.isImporting)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 20, right: 20, bottom: 12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: MijigiColors.surface,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: MijigiColors.border),
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 12, height: 12,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 1.5, color: MijigiColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Scanning images...',
+                            style: TextStyle(color: MijigiColors.textTertiary, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
               // Photo grid - 3 columns
               if (items.isEmpty)
                 SliverToBoxAdapter(child: _buildEmpty())
@@ -261,7 +355,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
               ListTile(
                 leading: const Icon(Icons.camera_alt_rounded,
                     color: MijigiColors.primary),
-                title: const Text('Take Photo'),
+                title: const Text('Take Photo', style: TextStyle(color: MijigiColors.textPrimary)),
                 onTap: () async {
                   Navigator.pop(ctx);
                   final item = await provider.captureFromCamera();
@@ -271,7 +365,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
               ListTile(
                 leading: const Icon(Icons.photo_library_rounded,
                     color: MijigiColors.primaryLight),
-                title: const Text('Choose from Gallery'),
+                title: const Text('Choose from Gallery', style: TextStyle(color: MijigiColors.textPrimary)),
                 onTap: () async {
                   Navigator.pop(ctx);
                   final item = await provider.captureFromGallery();
@@ -281,7 +375,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined,
                     color: MijigiColors.accent),
-                title: const Text('Import Multiple'),
+                title: const Text('Import Multiple', style: TextStyle(color: MijigiColors.textPrimary)),
                 onTap: () async {
                   Navigator.pop(ctx);
                   await provider.captureMultipleFromGallery();
@@ -290,7 +384,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
               ListTile(
                 leading: const Icon(Icons.sync_rounded,
                     color: MijigiColors.textSecondary),
-                title: const Text('Sync Device Photos'),
+                title: const Text('Sync Device Photos', style: TextStyle(color: MijigiColors.textPrimary)),
                 subtitle: const Text('Import all photos from your device',
                     style: TextStyle(
                         color: MijigiColors.textTertiary, fontSize: 12)),
@@ -346,7 +440,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
                       : Icons.push_pin_rounded,
                   color: MijigiColors.primary,
                 ),
-                title: Text(item.isPinned ? 'Unpin' : 'Pin'),
+                title: Text(item.isPinned ? 'Unpin' : 'Pin', style: const TextStyle(color: MijigiColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(ctx);
                   provider.togglePin(item.id);
@@ -355,7 +449,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
               ListTile(
                 leading: const Icon(Icons.delete_rounded,
                     color: MijigiColors.error),
-                title: const Text('Delete'),
+                title: const Text('Delete', style: TextStyle(color: MijigiColors.error)),
                 onTap: () {
                   Navigator.pop(ctx);
                   provider.deleteItem(item.id);
