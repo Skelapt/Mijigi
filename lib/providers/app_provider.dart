@@ -79,19 +79,20 @@ class AppProvider extends ChangeNotifier {
   Future<void> _checkClipboard() async {
     try {
       final data = await Clipboard.getData(Clipboard.kTextPlain);
-      final text = data?.text;
+      final text = data?.text?.trim();
       if (text != null && text.isNotEmpty && text != _lastClipboardText) {
-        // Check it's not already saved
+        _lastClipboardText = text;
+        // Check it's not already saved (compare trimmed)
         final alreadySaved = _items.any((i) =>
-            i.type == CaptureType.clipboard && i.rawText == text);
+            i.type == CaptureType.clipboard && i.rawText?.trim() == text);
         if (!alreadySaved) {
-          _lastClipboardText = text;
+          debugPrint('[Mijigi] Auto-saving clipboard: ${text.length} chars');
           await captureClipboard(text);
-        } else {
-          _lastClipboardText = text;
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[Mijigi] Clipboard read failed: $e');
+    }
   }
 
   void setTab(int index) {
@@ -115,6 +116,31 @@ class AppProvider extends ChangeNotifier {
     );
     if (photo == null) return null;
     return _createImageItem(photo.path, CaptureType.photo);
+  }
+
+  Future<CaptureItem?> captureVideoFromCamera() async {
+    final XFile? video = await _picker.pickVideo(source: ImageSource.camera);
+    if (video == null) return null;
+    return _createVideoItem(video.path);
+  }
+
+  Future<CaptureItem?> captureVideoFromGallery() async {
+    final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
+    if (video == null) return null;
+    return _createVideoItem(video.path);
+  }
+
+  Future<CaptureItem> _createVideoItem(String path) async {
+    final item = CaptureItem(
+      id: _uuid.v4(),
+      filePath: path,
+      type: CaptureType.video,
+      isProcessed: true,
+    );
+    await _storage.saveItem(item);
+    _items.insert(0, item);
+    notifyListeners();
+    return item;
   }
 
   Future<CaptureItem?> captureFromGallery() async {

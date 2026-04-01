@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/capture_item.dart';
 import '../../providers/app_provider.dart';
 import '../../theme/app_theme.dart';
@@ -203,7 +204,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     );
   }
 
-  /// Build a one-tap copy card for extracted data (emails, phones, amounts)
+  /// Build action card for extracted data with smart action buttons
   Widget _buildCopyCard(String key, dynamic value) {
     final items = value is List ? value.cast<String>() : [value.toString()];
     final icon = switch (key) {
@@ -221,6 +222,19 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       'dates' => MijigiColors.warning,
       'urls' => MijigiColors.accent,
       _ => MijigiColors.textSecondary,
+    };
+    // Action button config
+    final actionIcon = switch (key) {
+      'emails' => Icons.send_rounded,
+      'phones' => Icons.call_rounded,
+      'urls' => Icons.open_in_new_rounded,
+      _ => null,
+    };
+    final actionLabel = switch (key) {
+      'emails' => 'Email',
+      'phones' => 'Call',
+      'urls' => 'Open',
+      _ => null,
     };
 
     return Container(
@@ -250,26 +264,28 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          ...items.map((item) => GestureDetector(
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: item));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Copied: $item', style: const TextStyle(color: Colors.white)),
-                      duration: const Duration(seconds: 1),
-                      backgroundColor: MijigiColors.surfaceLight,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                  );
-                },
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    children: [
-                      Expanded(
+          const SizedBox(height: 8),
+          ...items.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    // Text - tap to copy
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: item));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Copied: $item',
+                                  style: const TextStyle(color: Colors.white)),
+                              duration: const Duration(seconds: 1),
+                              backgroundColor: MijigiColors.surfaceLight,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                            ),
+                          );
+                        },
                         child: Text(
                           item,
                           style: const TextStyle(
@@ -278,15 +294,77 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           ),
                         ),
                       ),
-                      const Icon(Icons.content_copy_rounded,
-                          size: 14, color: MijigiColors.textTertiary),
+                    ),
+                    const SizedBox(width: 8),
+                    // Copy button
+                    _ActionButton(
+                      icon: Icons.content_copy_rounded,
+                      label: 'Copy',
+                      color: MijigiColors.textTertiary,
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: item));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Copied',
+                                style: TextStyle(color: Colors.white)),
+                            duration: const Duration(seconds: 1),
+                            backgroundColor: MijigiColors.surfaceLight,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                        );
+                      },
+                    ),
+                    // Action button (email, call, open)
+                    if (actionIcon != null) ...[
+                      const SizedBox(width: 6),
+                      _ActionButton(
+                        icon: actionIcon,
+                        label: actionLabel!,
+                        color: color,
+                        onTap: () => _launchAction(key, item),
+                      ),
                     ],
-                  ),
+                  ],
                 ),
               )),
         ],
       ),
     );
+  }
+
+  void _launchAction(String key, String value) async {
+    Uri? uri;
+    switch (key) {
+      case 'emails':
+        uri = Uri(scheme: 'mailto', path: value);
+        break;
+      case 'phones':
+        uri = Uri(scheme: 'tel', path: value.replaceAll(RegExp(r'[^\d+]'), ''));
+        break;
+      case 'urls':
+        uri = Uri.tryParse(value);
+        break;
+    }
+    if (uri != null) {
+      try {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Could not open',
+                  style: TextStyle(color: Colors.white)),
+              backgroundColor: MijigiColors.surfaceLight,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+      }
+    }
   }
 
   void _handleAction(String action, AppProvider provider, CaptureItem item) {
@@ -325,5 +403,48 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     final amPm = date.hour >= 12 ? 'PM' : 'AM';
     final minute = date.minute.toString().padLeft(2, '0');
     return '${months[date.month - 1]} ${date.day}, ${date.year} at $hour:$minute $amPm';
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

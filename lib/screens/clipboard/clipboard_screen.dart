@@ -13,31 +13,17 @@ class ClipboardScreen extends StatefulWidget {
   State<ClipboardScreen> createState() => _ClipboardScreenState();
 }
 
-class _ClipboardScreenState extends State<ClipboardScreen> with WidgetsBindingObserver {
+class _ClipboardScreenState extends State<ClipboardScreen> {
   final Set<String> _selected = {};
   bool _selectMode = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    // Check clipboard when screen loads
+    // Try auto-capture on screen open
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AppProvider>().checkClipboardNow();
     });
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      context.read<AppProvider>().checkClipboardNow();
-    }
   }
 
   List<CaptureItem> _getClipboardItems(AppProvider provider) {
@@ -46,7 +32,6 @@ class _ClipboardScreenState extends State<ClipboardScreen> with WidgetsBindingOb
         .toList();
   }
 
-  /// Group items by date
   Map<String, List<CaptureItem>> _groupByDate(List<CaptureItem> items) {
     final grouped = <String, List<CaptureItem>>{};
     final today = DateTime.now();
@@ -153,38 +138,73 @@ class _ClipboardScreenState extends State<ClipboardScreen> with WidgetsBindingOb
 
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-              // Save clipboard button
+              // Two buttons: paste from clipboard + type manually
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: GestureDetector(
-                    onTap: () => _saveClipboard(provider),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: BoxDecoration(
-                        color: MijigiColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color:
-                                MijigiColors.primary.withValues(alpha: 0.3)),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.content_paste_go_rounded,
-                              color: MijigiColors.primary, size: 18),
-                          SizedBox(width: 8),
-                          Text(
-                            'Save Current Clipboard',
-                            style: TextStyle(
-                              color: MijigiColors.primary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _saveFromClipboard(provider),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            decoration: BoxDecoration(
+                              color: MijigiColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: MijigiColors.primary.withValues(alpha: 0.3)),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.content_paste_go_rounded,
+                                    color: MijigiColors.primary, size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Paste & Save',
+                                  style: TextStyle(
+                                    color: MijigiColors.primary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _showManualInput(provider),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            decoration: BoxDecoration(
+                              color: MijigiColors.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: MijigiColors.border),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.edit_rounded,
+                                    color: MijigiColors.textSecondary, size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Type & Save',
+                                  style: TextStyle(
+                                    color: MijigiColors.textSecondary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -196,7 +216,6 @@ class _ClipboardScreenState extends State<ClipboardScreen> with WidgetsBindingOb
                 SliverToBoxAdapter(child: _buildEmpty())
               else
                 ...grouped.entries.expand((entry) => [
-                      // Date header
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.only(
@@ -211,7 +230,6 @@ class _ClipboardScreenState extends State<ClipboardScreen> with WidgetsBindingOb
                           ),
                         ),
                       ),
-                      // 2-column grid of cards
                       SliverPadding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         sliver: SliverGrid(
@@ -284,43 +302,136 @@ class _ClipboardScreenState extends State<ClipboardScreen> with WidgetsBindingOb
                     fontSize: 16,
                     fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
-            const Text('Tap "Save Current Clipboard" to save text',
-                style:
-                    TextStyle(color: MijigiColors.textTertiary, fontSize: 13)),
+            const Text(
+                'Copy text anywhere, then tap "Paste & Save"\nor type text manually',
+                style: TextStyle(color: MijigiColors.textTertiary, fontSize: 13),
+                textAlign: TextAlign.center),
           ],
         ),
       ),
     );
   }
 
-  void _saveClipboard(AppProvider provider) async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    if (data?.text != null && data!.text!.isNotEmpty) {
-      await provider.captureClipboard(data.text!);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Clipboard saved', style: TextStyle(color: Colors.white)),
-            backgroundColor: MijigiColors.surfaceLight,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
-          ),
-        );
+  void _saveFromClipboard(AppProvider provider) async {
+    try {
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      if (data?.text != null && data!.text!.trim().isNotEmpty) {
+        await provider.captureClipboard(data.text!.trim());
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Saved!', style: TextStyle(color: Colors.white)),
+              backgroundColor: MijigiColors.surfaceLight,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+      } else {
+        // Clipboard empty or couldn't read - show manual input
+        if (mounted) _showManualInput(provider);
       }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Clipboard is empty', style: TextStyle(color: Colors.white)),
-            backgroundColor: MijigiColors.surfaceLight,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
+    } catch (e) {
+      // Android clipboard restrictions - fallback to manual input
+      if (mounted) _showManualInput(provider);
     }
+  }
+
+  void _showManualInput(AppProvider provider) {
+    final controller = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: MijigiColors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20, right: 20, top: 20,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36, height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: MijigiColors.textTertiary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Text('Save to Clipboard',
+                style: TextStyle(
+                    color: MijigiColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              maxLines: 5,
+              minLines: 3,
+              style: const TextStyle(color: MijigiColors.textPrimary, fontSize: 15),
+              decoration: InputDecoration(
+                hintText: 'Paste or type text here...',
+                hintStyle: const TextStyle(color: MijigiColors.textTertiary),
+                filled: true,
+                fillColor: MijigiColors.surfaceLight,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: MijigiColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: MijigiColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: MijigiColors.primary),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: MijigiColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () async {
+                  final text = controller.text.trim();
+                  if (text.isNotEmpty) {
+                    await provider.captureClipboard(text);
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Saved!',
+                              style: TextStyle(color: Colors.white)),
+                          backgroundColor: MijigiColors.surfaceLight,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _copyToClipboard(CaptureItem item) {
@@ -332,8 +443,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> with WidgetsBindingOb
           duration: const Duration(seconds: 1),
           backgroundColor: MijigiColors.surfaceLight,
           behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     }

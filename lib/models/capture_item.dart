@@ -6,6 +6,7 @@ enum CaptureType {
   clipboard,
   voice,
   link,
+  video,
 }
 
 enum ItemCategory {
@@ -83,6 +84,7 @@ class CaptureItem {
     CaptureType.clipboard => 'Clipboard',
     CaptureType.voice => 'Voice Memo',
     CaptureType.link => 'Link',
+    CaptureType.video => 'Video',
   };
 
   String get categoryLabel => switch (category) {
