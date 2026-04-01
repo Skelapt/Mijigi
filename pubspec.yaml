@@ -26,6 +26,7 @@ dependencies:
 
   # Media
   image_picker: ^1.0.7
+  video_player: ^2.9.2
   photo_manager: ^3.6.0
 
   # Networking

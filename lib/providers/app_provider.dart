@@ -246,6 +246,14 @@ class AppProvider extends ChangeNotifier {
   Future<void> _processItem(CaptureItem item) async {
     if (item.isProcessed || item.filePath == null) return;
 
+    // Skip OCR/labeling for videos - nothing to scan
+    if (item.type == CaptureType.video) {
+      item.isProcessed = true;
+      await _storage.updateItem(item);
+      notifyListeners();
+      return;
+    }
+
     try {
       // Run OCR and labeling in parallel
       final ocrFuture = _ocr.processImage(item.filePath!);

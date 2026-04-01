@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
 import '../../models/capture_item.dart';
 import '../../providers/app_provider.dart';
 import '../../theme/app_theme.dart';
@@ -18,6 +19,23 @@ class ItemDetailScreen extends StatefulWidget {
 }
 
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
+  VideoPlayerController? _videoController;
+  bool _videoInitialized = false;
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    super.dispose();
+  }
+
+  void _initVideo(String path) {
+    if (_videoController != null) return;
+    _videoController = VideoPlayerController.file(File(path))
+      ..initialize().then((_) {
+        if (mounted) setState(() => _videoInitialized = true);
+      });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
@@ -100,6 +118,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 // PDF card
                 if (isPdf) ...[
                   _buildPdfCard(item),
+                  const SizedBox(height: 16),
+                ]
+                // Video player
+                else if (item.type == CaptureType.video && item.filePath != null) ...[
+                  _buildVideoPlayer(item.filePath!),
                   const SizedBox(height: 16),
                 ]
                 // Image
@@ -240,6 +263,85 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   }
 
   /// PDF file card with icon, filename, and open button
+  Widget _buildVideoPlayer(String path) {
+    _initVideo(path);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        color: MijigiColors.surfaceLight,
+        child: _videoInitialized && _videoController != null
+            ? Column(
+                children: [
+                  AspectRatio(
+                    aspectRatio: _videoController!.value.aspectRatio,
+                    child: VideoPlayer(_videoController!),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    color: MijigiColors.surface,
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _videoController!.value.isPlaying
+                                  ? _videoController!.pause()
+                                  : _videoController!.play();
+                            });
+                          },
+                          child: Icon(
+                            _videoController!.value.isPlaying
+                                ? Icons.pause_rounded
+                                : Icons.play_arrow_rounded,
+                            color: MijigiColors.primary,
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: VideoProgressIndicator(
+                            _videoController!,
+                            allowScrubbing: true,
+                            colors: const VideoProgressColors(
+                              playedColor: MijigiColors.primary,
+                              bufferedColor: MijigiColors.surfaceBright,
+                              backgroundColor: MijigiColors.border,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatDuration(_videoController!.value.duration),
+                          style: const TextStyle(
+                            color: MijigiColors.textTertiary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : const SizedBox(
+                height: 200,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: MijigiColors.primary,
+                    strokeWidth: 2,
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
   Widget _buildPdfCard(CaptureItem item) {
     final fileName = item.filePath!.split('/').last;
     final file = File(item.filePath!);

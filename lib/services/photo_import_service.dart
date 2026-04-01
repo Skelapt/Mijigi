@@ -39,7 +39,7 @@ class PhotoImportService {
     int batchSize = 20,
   }) async* {
     final albums = await PhotoManager.getAssetPathList(
-      type: RequestType.image,
+      type: RequestType.common, // images + videos
       filterOption: FilterOptionGroup(
         orders: [const OrderOption(type: OrderOptionType.createDate, asc: false)],
       ),
@@ -67,7 +67,7 @@ class PhotoImportService {
       processed: 0,
       imported: 0,
       status: ImportStatus.scanning,
-      message: 'Found $totalAssets photos. Scanning...',
+      message: 'Found $totalAssets items. Scanning...',
     );
 
     final appDir = await getApplicationDocumentsDirectory();
@@ -115,9 +115,15 @@ class PhotoImportService {
             await file.copy(newPath);
 
             // Determine type
-            final type = _isScreenshot(asset)
-                ? CaptureType.screenshot
-                : CaptureType.photo;
+            final isVideo = asset.type == AssetType.video;
+            final CaptureType type;
+            if (isVideo) {
+              type = CaptureType.video;
+            } else if (_isScreenshot(asset)) {
+              type = CaptureType.screenshot;
+            } else {
+              type = CaptureType.photo;
+            }
 
             // Create capture item
             final item = CaptureItem(
@@ -125,23 +131,24 @@ class PhotoImportService {
               filePath: newPath,
               type: type,
               createdAt: asset.createDateTime,
-              isProcessed: false,
+              isProcessed: isVideo, // videos don't need OCR processing
             );
 
-            // Try OCR
-            try {
-              final ocrResult = await _ocr.processImage(newPath);
-              if (ocrResult.isNotEmpty) {
-                item.rawText = ocrResult.fullText;
-                item.category = _categorisation.categorise(ocrResult.fullText);
-                item.extractedData =
-                    _categorisation.extractData(ocrResult.fullText);
+            // Try OCR only for images (not videos)
+            if (!isVideo) {
+              try {
+                final ocrResult = await _ocr.processImage(newPath);
+                if (ocrResult.isNotEmpty) {
+                  item.rawText = ocrResult.fullText;
+                  item.category = _categorisation.categorise(ocrResult.fullText);
+                  item.extractedData =
+                      _categorisation.extractData(ocrResult.fullText);
+                }
+              } catch (e) {
+                debugPrint('OCR failed for asset: $e');
               }
-            } catch (e) {
-              debugPrint('OCR failed for asset: $e');
+              item.isProcessed = true;
             }
-
-            item.isProcessed = true;
             await storage.saveItem(item);
             imported++;
           } catch (e) {
@@ -174,7 +181,7 @@ class PhotoImportService {
       status: ImportStatus.complete,
       message: imported > 0
           ? 'Done! Imported $imported new items from $totalAssets photos.'
-          : 'All photos already imported. $totalAssets photos indexed.',
+          : 'All items already imported. $totalAssets items indexed.',
     );
   }
 
