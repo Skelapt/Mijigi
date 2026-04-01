@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../models/capture_item.dart';
 import '../../providers/app_provider.dart';
-import 'package:image_picker/image_picker.dart';
 import '../../services/file_scanner_service.dart';
 import '../../theme/app_theme.dart';
-import '../scanner/scanner_review_screen.dart';
 import '../../widgets/mijigi_search_bar.dart';
 import '../item_detail/item_detail_screen.dart';
+import '../scanner/scanner_review_screen.dart';
 
 class FilesScreen extends StatefulWidget {
   const FilesScreen({super.key});
@@ -21,10 +21,7 @@ class _FilesScreenState extends State<FilesScreen> {
   String _scanStatus = '';
   String _selectedFilter = 'all';
   String _localSearch = '';
-  StorageBreakdown? _storageInfo;
-  List<DuplicateGroup>? _duplicates;
 
-  /// Get document/file items from persisted storage (not images)
   List<CaptureItem> _getFileItems(AppProvider provider) {
     var items = provider.activeItems.where((i) =>
         i.type == CaptureType.document ||
@@ -32,7 +29,6 @@ class _FilesScreenState extends State<FilesScreen> {
         i.type == CaptureType.voice ||
         i.type == CaptureType.note).toList();
 
-    // Apply file type filter
     if (_selectedFilter == 'pdf') {
       items = items.where((i) =>
           i.filePath?.toLowerCase().endsWith('.pdf') == true).toList();
@@ -40,27 +36,18 @@ class _FilesScreenState extends State<FilesScreen> {
       items = items.where((i) {
         final path = i.filePath?.toLowerCase() ?? '';
         return path.endsWith('.doc') || path.endsWith('.docx') ||
-            path.endsWith('.txt') || path.endsWith('.rtf') ||
-            path.endsWith('.odt');
-      }).toList();
-    } else if (_selectedFilter == 'spreadsheets') {
-      items = items.where((i) {
-        final path = i.filePath?.toLowerCase() ?? '';
-        return path.endsWith('.xls') || path.endsWith('.xlsx') ||
-            path.endsWith('.csv') || path.endsWith('.ods');
+            path.endsWith('.txt') || path.endsWith('.rtf');
       }).toList();
     } else if (_selectedFilter == 'notes') {
       items = items.where((i) => i.type == CaptureType.note).toList();
     }
 
-    // Apply search
     if (_localSearch.isNotEmpty) {
       final lower = _localSearch.toLowerCase();
       items = items.where((i) {
         return (i.title?.toLowerCase().contains(lower) ?? false) ||
             (i.rawText?.toLowerCase().contains(lower) ?? false) ||
-            (i.filePath?.toLowerCase().contains(lower) ?? false) ||
-            i.tags.any((t) => t.toLowerCase().contains(lower));
+            (i.filePath?.toLowerCase().contains(lower) ?? false);
       }).toList();
     }
 
@@ -71,13 +58,11 @@ class _FilesScreenState extends State<FilesScreen> {
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
-        // Exclude videos too
-
         final fileItems = _getFileItems(provider);
         final allFiles = provider.activeItems.where((i) =>
-            i.type != CaptureType.photo && i.type != CaptureType.screenshot && i.type != CaptureType.clipboard && i.type != CaptureType.video).toList();
+            i.type != CaptureType.photo && i.type != CaptureType.screenshot &&
+            i.type != CaptureType.clipboard && i.type != CaptureType.video).toList();
 
-        // Count by type
         final pdfCount = allFiles.where((i) =>
             i.filePath?.toLowerCase().endsWith('.pdf') == true).length;
         final docCount = allFiles.where((i) {
@@ -85,297 +70,242 @@ class _FilesScreenState extends State<FilesScreen> {
           return path.endsWith('.doc') || path.endsWith('.docx') ||
               path.endsWith('.txt') || path.endsWith('.rtf');
         }).length;
-        final spreadsheetCount = allFiles.where((i) {
-          final path = i.filePath?.toLowerCase() ?? '';
-          return path.endsWith('.xls') || path.endsWith('.xlsx') ||
-              path.endsWith('.csv');
-        }).length;
         final noteCount = allFiles.where((i) => i.type == CaptureType.note).length;
 
         return Scaffold(
           backgroundColor: MijigiColors.background,
-          floatingActionButton: FloatingActionButton(
-            backgroundColor: MijigiColors.primary,
-            onPressed: () => _scanDocument(context),
-            child: const Icon(Icons.document_scanner_rounded, color: Colors.white),
-          ),
           body: CustomScrollView(
-          slivers: [
-            const SliverToBoxAdapter(child: SizedBox(height: 60)),
+            slivers: [
+              const SliverToBoxAdapter(child: SizedBox(height: 56)),
 
-            // Title
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Files',
-                              style: TextStyle(
-                                color: MijigiColors.textPrimary,
-                                fontSize: 28,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            Text(
-                              '${allFiles.length} files',
-                              style: const TextStyle(
-                                color: MijigiColors.textTertiary,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        // Scan button
-                        GestureDetector(
-                          onTap: _isScanning ? null : () => _startScan(provider),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: _isScanning
-                                  ? MijigiColors.surface
-                                  : MijigiColors.accent.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: _isScanning
-                                    ? MijigiColors.border
-                                    : MijigiColors.accent.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (_isScanning) ...[
-                                  SizedBox(
-                                    width: 14,
-                                    height: 14,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: MijigiColors.accent,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'Scanning...',
-                                    style: TextStyle(
-                                      color: MijigiColors.textSecondary,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ] else ...[
-                                  const Icon(Icons.radar_rounded,
-                                      color: MijigiColors.accent, size: 16),
-                                  const SizedBox(width: 6),
-                                  const Text(
-                                    'Scan Device',
-                                    style: TextStyle(
-                                      color: MijigiColors.accent,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // Scan status
-            if (_isScanning)
+              // Header
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: MijigiColors.accent.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: MijigiColors.accent.withValues(alpha: 0.15)),
+                  child: const Text(
+                    'Documents',
+                    style: TextStyle(
+                      color: MijigiColors.textPrimary,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
                     ),
-                    child: Text(
-                      _scanStatus,
-                      style: const TextStyle(
-                        color: MijigiColors.textSecondary,
-                        fontSize: 13,
+                  ),
+                ),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+              // Scanner hero card
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: GestureDetector(
+                    onTap: () => _scanDocument(context, provider),
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF1E3A5F),
+                            Color(0xFF0F1B2D),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: MijigiColors.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: MijigiColors.primary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(
+                              Icons.document_scanner_rounded,
+                              color: MijigiColors.primaryLight,
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Scan Document',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Multi-page • Filters • Rotate • Export PDF',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.6),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: Colors.white.withValues(alpha: 0.4),
+                            size: 16,
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
               ),
 
-            if (_isScanning)
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-            // Storage overview (after scan)
-            if (_storageInfo != null)
+              // Quick actions row
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: _buildStorageCard(),
-                ),
-              ),
-
-            if (_storageInfo != null)
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
-
-            // Duplicates warning
-            if (_duplicates != null && _duplicates!.isNotEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: _buildDuplicatesCard(),
-                ),
-              ),
-
-            if (_duplicates != null && _duplicates!.isNotEmpty)
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
-
-            // Search
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: MijigiSearchBar(
-                  hint: 'Search files...',
-                  onChanged: (q) => setState(() => _localSearch = q),
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // File type filters
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: 36,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  children: [
-                    _buildChip('All', allFiles.length, _selectedFilter == 'all',
-                        MijigiColors.primary, () => setState(() => _selectedFilter = 'all')),
-                    const SizedBox(width: 8),
-                    if (pdfCount > 0) ...[
-                      _buildChip('PDF', pdfCount, _selectedFilter == 'pdf',
-                          MijigiColors.error, () => setState(() => _selectedFilter = 'pdf')),
-                      const SizedBox(width: 8),
+                  child: Row(
+                    children: [
+                      _QuickAction(
+                        icon: Icons.note_add_rounded,
+                        label: 'Note',
+                        color: MijigiColors.fileNote,
+                        onTap: () => _createNote(provider),
+                      ),
+                      const SizedBox(width: 10),
+                      _QuickAction(
+                        icon: Icons.radar_rounded,
+                        label: 'Scan Device',
+                        color: MijigiColors.accent,
+                        isLoading: _isScanning,
+                        onTap: _isScanning ? null : () => _startScan(provider),
+                      ),
                     ],
-                    if (docCount > 0) ...[
-                      _buildChip('Documents', docCount, _selectedFilter == 'docs',
-                          MijigiColors.categoryDocument, () => setState(() => _selectedFilter = 'docs')),
-                      const SizedBox(width: 8),
-                    ],
-                    if (spreadsheetCount > 0) ...[
-                      _buildChip('Spreadsheets', spreadsheetCount, _selectedFilter == 'spreadsheets',
-                          MijigiColors.categoryFinancial, () => setState(() => _selectedFilter = 'spreadsheets')),
-                      const SizedBox(width: 8),
-                    ],
-                    if (noteCount > 0) ...[
-                      _buildChip('Notes', noteCount, _selectedFilter == 'notes',
-                          MijigiColors.accent, () => setState(() => _selectedFilter = 'notes')),
-                      const SizedBox(width: 8),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // File list from persisted storage
-            if (fileItems.isEmpty)
-              SliverToBoxAdapter(child: _buildEmpty())
-            else
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _FileItemCard(
-                          item: fileItems[index],
-                          onTap: () => _openItem(fileItems[index]),
-                          onLongPress: () => _showActions(provider, fileItems[index]),
-                        ),
-                      );
-                    },
-                    childCount: fileItems.length,
                   ),
                 ),
               ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
-          ],
-        ),
+              if (_isScanning)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 20, right: 20, top: 10),
+                    child: Text(
+                      _scanStatus,
+                      style: const TextStyle(
+                        color: MijigiColors.textTertiary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+              // Search
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: MijigiSearchBar(
+                    hint: 'Search documents...',
+                    onChanged: (q) => setState(() => _localSearch = q),
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+
+              // Filter chips
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 34,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    children: [
+                      _chip('All', allFiles.length, _selectedFilter == 'all',
+                          () => setState(() => _selectedFilter = 'all')),
+                      if (pdfCount > 0) ...[
+                        const SizedBox(width: 6),
+                        _chip('PDF', pdfCount, _selectedFilter == 'pdf',
+                            () => setState(() => _selectedFilter = 'pdf')),
+                      ],
+                      if (docCount > 0) ...[
+                        const SizedBox(width: 6),
+                        _chip('Documents', docCount, _selectedFilter == 'docs',
+                            () => setState(() => _selectedFilter = 'docs')),
+                      ],
+                      if (noteCount > 0) ...[
+                        const SizedBox(width: 6),
+                        _chip('Notes', noteCount, _selectedFilter == 'notes',
+                            () => setState(() => _selectedFilter = 'notes')),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+
+              // File list
+              if (fileItems.isEmpty)
+                SliverToBoxAdapter(child: _buildEmpty())
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _FileCard(
+                            item: fileItems[index],
+                            onTap: () => _openItem(fileItems[index]),
+                            onLongPress: () =>
+                                _showActions(provider, fileItems[index]),
+                          ),
+                        );
+                      },
+                      childCount: fileItems.length,
+                    ),
+                  ),
+                ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          ),
         );
       },
     );
   }
 
-  Future<void> _scanDocument(BuildContext context) async {
-    final picker = ImagePicker();
-    final XFile? photo = await picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 95,
-    );
-    if (photo != null && context.mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ScannerReviewScreen(initialImagePath: photo.path),
-        ),
-      );
-    }
-  }
-
-  Widget _buildChip(String label, int count, bool isActive, Color color, VoidCallback onTap) {
+  Widget _chip(String label, int count, bool active, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: isActive ? color.withValues(alpha: 0.15) : MijigiColors.surface,
-          borderRadius: BorderRadius.circular(10),
+          color: active ? MijigiColors.primary : MijigiColors.surface,
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isActive ? color.withValues(alpha: 0.3) : MijigiColors.border,
+            color: active ? MijigiColors.primary : MijigiColors.border,
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: isActive ? color : MijigiColors.textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              '$count',
-              style: TextStyle(
-                color: isActive ? color : MijigiColors.textTertiary,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
+        child: Text(
+          '$label $count',
+          style: TextStyle(
+            color: active ? Colors.white : MijigiColors.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
@@ -383,119 +313,126 @@ class _FilesScreenState extends State<FilesScreen> {
 
   Widget _buildEmpty() {
     return Padding(
-      padding: const EdgeInsets.only(top: 60),
+      padding: const EdgeInsets.only(top: 40),
       child: Center(
         child: Column(
           children: [
-            Icon(
-              Icons.folder_open_rounded,
-              size: 48,
-              color: MijigiColors.textTertiary.withValues(alpha: 0.5),
-            ),
+            Icon(Icons.folder_open_rounded,
+                size: 48,
+                color: MijigiColors.textTertiary.withValues(alpha: 0.5)),
             const SizedBox(height: 12),
-            const Text(
-              'No files yet',
-              style: TextStyle(
-                color: MijigiColors.textTertiary,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            const Text('No documents yet',
+                style: TextStyle(
+                    color: MijigiColors.textSecondary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
-            const Text(
-              'Tap "Scan Device" to find files\nor capture notes and documents',
-              style: TextStyle(
-                color: MijigiColors.textTertiary,
-                fontSize: 13,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            const Text('Scan a document or create a note',
+                style:
+                    TextStyle(color: MijigiColors.textTertiary, fontSize: 13)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStorageCard() {
-    final s = _storageInfo!;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: MijigiColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: MijigiColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.storage_rounded, size: 16, color: MijigiColors.accent),
-              const SizedBox(width: 8),
-              const Text('Device Storage', style: TextStyle(
-                color: MijigiColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w700,
-              )),
-              const Spacer(),
-              Text(s.totalSizeFormatted, style: const TextStyle(
-                color: MijigiColors.accent, fontSize: 14, fontWeight: FontWeight.w800,
-              )),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: SizedBox(
-              height: 8,
-              child: Row(
-                children: [
-                  if (s.documentCount > 0) _BarSegment(flex: s.documentCount, color: MijigiColors.categoryDocument),
-                  if (s.imageCount > 0) _BarSegment(flex: s.imageCount, color: MijigiColors.categoryPersonal),
-                  if (s.audioCount > 0) _BarSegment(flex: s.audioCount, color: MijigiColors.categoryWork),
-                  if (s.videoCount > 0) _BarSegment(flex: s.videoCount, color: MijigiColors.categoryTravel),
-                  if (s.otherCount > 0) _BarSegment(flex: s.otherCount, color: MijigiColors.textTertiary),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 14, runSpacing: 6,
-            children: [
-              _LegendDot(color: MijigiColors.categoryDocument, label: 'Docs ${s.documentCount}'),
-              _LegendDot(color: MijigiColors.categoryPersonal, label: 'Images ${s.imageCount}'),
-              _LegendDot(color: MijigiColors.categoryWork, label: 'Audio ${s.audioCount}'),
-              _LegendDot(color: MijigiColors.categoryTravel, label: 'Video ${s.videoCount}'),
-            ],
-          ),
-        ],
-      ),
+  Future<void> _scanDocument(BuildContext context, AppProvider provider) async {
+    final picker = ImagePicker();
+    final XFile? photo = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 95,
     );
+    if (photo != null && context.mounted) {
+      final result = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ScannerReviewScreen(initialImagePath: photo.path),
+        ),
+      );
+      if (result == true) {
+        provider.reloadItems();
+      }
+    }
   }
 
-  Widget _buildDuplicatesCard() {
-    final totalWasted = _duplicates!.fold<int>(0, (sum, d) => sum + d.wastedBytes);
-    final formatted = totalWasted < 1024 * 1024
-        ? '${(totalWasted / 1024).toStringAsFixed(0)}KB'
-        : '${(totalWasted / (1024 * 1024)).toStringAsFixed(1)}MB';
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: MijigiColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: MijigiColors.warning.withValues(alpha: 0.3)),
+  void _createNote(AppProvider provider) {
+    final controller = TextEditingController();
+    final titleController = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: MijigiColors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Row(
-        children: [
-          Icon(Icons.file_copy_rounded, color: MijigiColors.warning, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              '${_duplicates!.length} duplicate groups found \u2022 $formatted wasted',
-              style: const TextStyle(color: MijigiColors.warning, fontSize: 13, fontWeight: FontWeight.w600),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20, right: 20, top: 20,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36, height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: MijigiColors.textTertiary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-        ],
+            TextField(
+              controller: titleController,
+              style: const TextStyle(
+                  color: MijigiColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600),
+              decoration: const InputDecoration(
+                hintText: 'Title',
+                hintStyle: TextStyle(color: MijigiColors.textTertiary),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              maxLines: 6,
+              minLines: 3,
+              style: const TextStyle(
+                  color: MijigiColors.textPrimary, fontSize: 14),
+              decoration: const InputDecoration(
+                hintText: 'Write your note...',
+                hintStyle: TextStyle(color: MijigiColors.textTertiary),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: MijigiColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () async {
+                  if (controller.text.trim().isNotEmpty) {
+                    await provider.captureNote(
+                      controller.text.trim(),
+                      title: titleController.text.trim().isEmpty
+                          ? null
+                          : titleController.text.trim(),
+                    );
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  }
+                },
+                child: const Text('Save Note',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -507,28 +444,26 @@ class _FilesScreenState extends State<FilesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Storage access denied. Enable in Settings.'),
+            content: const Text('Storage access denied',
+                style: TextStyle(color: Colors.white)),
             backgroundColor: MijigiColors.surfaceLight,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
       return;
     }
 
-    setState(() { _isScanning = true; _scanStatus = 'Scanning device files...'; });
-
-    final files = await scanner.scanDeviceFiles();
     setState(() {
-      _storageInfo = scanner.analyzeStorage(files);
-      _scanStatus = 'Checking for duplicates...';
+      _isScanning = true;
+      _scanStatus = 'Scanning device files...';
     });
 
-    final duplicates = await scanner.findDuplicates(files);
-    setState(() { _duplicates = duplicates; _scanStatus = 'Importing new files...'; });
+    await scanner.scanDeviceFiles();
+    setState(() => _scanStatus = 'Importing files...');
 
-    // Import documents into Mijigi storage
     final existingPaths = provider.items
         .where((i) => i.filePath != null)
         .map((i) => i.filePath!)
@@ -539,7 +474,8 @@ class _FilesScreenState extends State<FilesScreen> {
       existingFilePaths: existingPaths,
     )) {
       setState(() {
-        _scanStatus = 'Processing ${progress.processed}/${progress.totalFound}: ${progress.currentFile}';
+        _scanStatus =
+            'Processing ${progress.processed}/${progress.totalFound}: ${progress.currentFile}';
       });
 
       if (progress.status == FileScanStatus.complete) {
@@ -547,7 +483,7 @@ class _FilesScreenState extends State<FilesScreen> {
       }
     }
 
-    setState(() { _isScanning = false; });
+    setState(() => _isScanning = false);
   }
 
   void _openItem(CaptureItem item) {
@@ -580,21 +516,28 @@ class _FilesScreenState extends State<FilesScreen> {
               ),
               ListTile(
                 leading: Icon(
-                  item.isPinned ? Icons.push_pin_outlined : Icons.push_pin_rounded,
+                  item.isPinned
+                      ? Icons.push_pin_outlined
+                      : Icons.push_pin_rounded,
                   color: MijigiColors.primary,
                 ),
-                title: Text(item.isPinned ? 'Unpin' : 'Pin', style: const TextStyle(color: MijigiColors.textPrimary)),
-                onTap: () { Navigator.pop(ctx); provider.togglePin(item.id); },
+                title: Text(item.isPinned ? 'Unpin' : 'Pin',
+                    style:
+                        const TextStyle(color: MijigiColors.textPrimary)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  provider.togglePin(item.id);
+                },
               ),
               ListTile(
-                leading: const Icon(Icons.archive_rounded, color: MijigiColors.warning),
-                title: const Text('Archive', style: TextStyle(color: MijigiColors.textPrimary)),
-                onTap: () { Navigator.pop(ctx); provider.archiveItem(item.id); },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete_rounded, color: MijigiColors.error),
-                title: const Text('Delete', style: TextStyle(color: MijigiColors.error)),
-                onTap: () { Navigator.pop(ctx); provider.deleteItem(item.id); },
+                leading: const Icon(Icons.delete_rounded,
+                    color: MijigiColors.error),
+                title: const Text('Delete',
+                    style: TextStyle(color: MijigiColors.error)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  provider.deleteItem(item.id);
+                },
               ),
             ],
           ),
@@ -604,12 +547,70 @@ class _FilesScreenState extends State<FilesScreen> {
   }
 }
 
-class _FileItemCard extends StatelessWidget {
+// --- Quick action button ---
+class _QuickAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback? onTap;
+  final bool isLoading;
+
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+    this.onTap,
+    this.isLoading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withValues(alpha: 0.15)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isLoading)
+                SizedBox(
+                  width: 16, height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: color),
+                )
+              else
+                Icon(icon, color: color, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// --- File card ---
+class _FileCard extends StatelessWidget {
   final CaptureItem item;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
-  const _FileItemCard({required this.item, required this.onTap, this.onLongPress});
+  const _FileCard(
+      {required this.item, required this.onTap, this.onLongPress});
 
   @override
   Widget build(BuildContext context) {
@@ -620,18 +621,19 @@ class _FileItemCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: MijigiColors.surface,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: MijigiColors.border),
         ),
         child: Row(
           children: [
             Container(
-              width: 42, height: 42,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: _iconColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(11),
+                color: _iconColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Center(child: Icon(_icon, color: _iconColor, size: 20)),
+              child: Icon(_icon, color: _iconColor, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -649,45 +651,30 @@ class _FileItemCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Text(
-                        item.categoryLabel,
-                        style: const TextStyle(
-                          color: MijigiColors.textTertiary,
-                          fontSize: 12,
-                        ),
-                      ),
-                      if (item.filePath != null) ...[
-                        const Text(' \u2022 ', style: TextStyle(color: MijigiColors.textTertiary, fontSize: 12)),
-                        Text(
-                          _fileExtension,
-                          style: TextStyle(
-                            color: _iconColor,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ],
+                  Text(
+                    _subtitle,
+                    style: const TextStyle(
+                      color: MijigiColors.textTertiary,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
             ),
             if (item.isPinned)
-              const Padding(
-                padding: EdgeInsets.only(left: 8),
-                child: Icon(Icons.push_pin_rounded, size: 14, color: MijigiColors.primary),
-              ),
-            const SizedBox(width: 4),
-            Text(
-              _formatDate(item.createdAt),
-              style: const TextStyle(color: MijigiColors.textTertiary, fontSize: 11),
-            ),
+              const Icon(Icons.push_pin_rounded,
+                  size: 14, color: MijigiColors.primary),
           ],
         ),
       ),
     );
+  }
+
+  String get _subtitle {
+    final parts = <String>[];
+    if (_fileExtension.isNotEmpty) parts.add(_fileExtension);
+    parts.add(_formatDate(item.createdAt));
+    return parts.join(' • ');
   }
 
   String get _fileExtension {
@@ -699,68 +686,31 @@ class _FileItemCard extends StatelessWidget {
 
   Color get _iconColor {
     final ext = _fileExtension.toLowerCase();
-    if (ext == 'pdf') return MijigiColors.error;
-    if (['doc', 'docx', 'rtf', 'odt'].contains(ext)) return MijigiColors.categoryDocument;
-    if (['xls', 'xlsx', 'csv', 'ods'].contains(ext)) return MijigiColors.categoryFinancial;
-    if (item.type == CaptureType.note) return MijigiColors.accent;
-    if (item.type == CaptureType.clipboard) return MijigiColors.categoryWork;
-    if (item.type == CaptureType.link) return MijigiColors.primary;
+    if (ext == 'pdf') return MijigiColors.filePdf;
+    if (['doc', 'docx', 'rtf'].contains(ext)) return MijigiColors.fileDoc;
+    if (['xls', 'xlsx', 'csv'].contains(ext)) return MijigiColors.fileSheet;
+    if (item.type == CaptureType.note) return MijigiColors.fileNote;
     return MijigiColors.textSecondary;
   }
 
   IconData get _icon {
     final ext = _fileExtension.toLowerCase();
     if (ext == 'pdf') return Icons.picture_as_pdf_rounded;
-    if (['doc', 'docx', 'rtf', 'odt'].contains(ext)) return Icons.description_rounded;
-    if (['xls', 'xlsx', 'csv', 'ods'].contains(ext)) return Icons.table_chart_rounded;
+    if (['doc', 'docx', 'rtf'].contains(ext)) return Icons.description_rounded;
+    if (['xls', 'xlsx', 'csv'].contains(ext)) return Icons.table_chart_rounded;
     if (item.type == CaptureType.note) return Icons.sticky_note_2_rounded;
-    if (item.type == CaptureType.clipboard) return Icons.content_paste_rounded;
     if (item.type == CaptureType.link) return Icons.link_rounded;
-    if (item.type == CaptureType.voice) return Icons.mic_rounded;
     return Icons.insert_drive_file_rounded;
   }
 
   String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final diff = now.difference(date);
+    final diff = DateTime.now().difference(date);
     if (diff.inMinutes < 1) return 'now';
-    if (diff.inHours < 1) return '${diff.inMinutes}m';
-    if (diff.inDays < 1) return '${diff.inHours}h';
-    if (diff.inDays < 7) return '${diff.inDays}d';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return '${months[date.month - 1]} ${date.day}';
-  }
-}
-
-class _BarSegment extends StatelessWidget {
-  final int flex;
-  final Color color;
-  const _BarSegment({required this.flex, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(flex: flex, child: Container(color: color));
-  }
-}
-
-class _LegendDot extends StatelessWidget {
-  final Color color;
-  final String label;
-  const _LegendDot({required this.color, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8, height: 8,
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
-        ),
-        const SizedBox(width: 4),
-        Text(label, style: const TextStyle(color: MijigiColors.textSecondary, fontSize: 11)),
-      ],
-    );
   }
 }
