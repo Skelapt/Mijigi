@@ -55,6 +55,77 @@ class _PhotosScreenState extends State<PhotosScreen>
     return items;
   }
 
+  /// Collect all extracted data items (emails, phones, urls, amounts) from all
+  /// media items, most recent first, capped at 20.
+  List<_QuickActionItem> _getQuickActions(AppProvider provider) {
+    final mediaItems = provider.activeItems
+        .where((i) => i.isImageType || i.type == CaptureType.video)
+        .toList();
+
+    final List<_QuickActionItem> actions = [];
+
+    for (final item in mediaItems) {
+      final data = item.extractedData;
+      if (data == null) continue;
+
+      final emails = data['emails'] as List?;
+      if (emails != null) {
+        for (final e in emails) {
+          actions.add(_QuickActionItem(
+            value: e.toString(),
+            type: _QuickActionType.email,
+            createdAt: item.createdAt,
+          ));
+        }
+      }
+
+      final phones = data['phones'] as List?;
+      if (phones != null) {
+        for (final p in phones) {
+          actions.add(_QuickActionItem(
+            value: p.toString(),
+            type: _QuickActionType.phone,
+            createdAt: item.createdAt,
+          ));
+        }
+      }
+
+      final urls = data['urls'] as List?;
+      if (urls != null) {
+        for (final u in urls) {
+          actions.add(_QuickActionItem(
+            value: u.toString(),
+            type: _QuickActionType.url,
+            createdAt: item.createdAt,
+          ));
+        }
+      }
+
+      final amounts = data['amounts'] as List?;
+      if (amounts != null) {
+        for (final a in amounts) {
+          actions.add(_QuickActionItem(
+            value: a.toString(),
+            type: _QuickActionType.amount,
+            createdAt: item.createdAt,
+          ));
+        }
+      }
+    }
+
+    // Sort most recent first, deduplicate by value, take 20
+    actions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final seen = <String>{};
+    final unique = <_QuickActionItem>[];
+    for (final a in actions) {
+      if (seen.add(a.value)) {
+        unique.add(a);
+        if (unique.length >= 20) break;
+      }
+    }
+    return unique;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
@@ -208,6 +279,7 @@ class _PhotosScreenState extends State<PhotosScreen>
   Widget _buildAllTab(AppProvider provider, int total, int screenshots,
       int videos, int photos) {
     final items = _getFilteredItems(provider);
+    final quickActions = _getQuickActions(provider);
 
     return CustomScrollView(
       slivers: [
@@ -223,6 +295,40 @@ class _PhotosScreenState extends State<PhotosScreen>
         ),
 
         const SliverToBoxAdapter(child: SizedBox(height: 10)),
+
+        // Quick actions row
+        if (quickActions.isNotEmpty)
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 34,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: quickActions.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                itemBuilder: (context, index) {
+                  final action = quickActions[index];
+                  return _QuickActionPill(
+                    action: action,
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: action.value));
+                      HapticFeedback.lightImpact();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Copied: ${action.value}'),
+                          duration: const Duration(seconds: 1),
+                          backgroundColor: MijigiColors.surface,
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+
+        if (quickActions.isNotEmpty)
+          const SliverToBoxAdapter(child: SizedBox(height: 10)),
 
         // Filters
         SliverToBoxAdapter(
@@ -261,6 +367,7 @@ class _PhotosScreenState extends State<PhotosScreen>
                 crossAxisCount: 3,
                 crossAxisSpacing: 2,
                 mainAxisSpacing: 2,
+                childAspectRatio: 0.85,
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -531,6 +638,93 @@ class _PhotosScreenState extends State<PhotosScreen>
   }
 }
 
+// --- Quick action types and data ---
+enum _QuickActionType { email, phone, url, amount }
+
+class _QuickActionItem {
+  final String value;
+  final _QuickActionType type;
+  final DateTime createdAt;
+
+  const _QuickActionItem({
+    required this.value,
+    required this.type,
+    required this.createdAt,
+  });
+
+  IconData get icon => switch (type) {
+    _QuickActionType.email => Icons.email_rounded,
+    _QuickActionType.phone => Icons.phone_rounded,
+    _QuickActionType.url => Icons.link_rounded,
+    _QuickActionType.amount => Icons.attach_money_rounded,
+  };
+
+  Color get color => switch (type) {
+    _QuickActionType.email => const Color(0xFF8B5CF6),  // purple
+    _QuickActionType.phone => const Color(0xFF3B82F6),  // blue
+    _QuickActionType.url => const Color(0xFF06B6D4),    // cyan
+    _QuickActionType.amount => const Color(0xFF22C55E), // green
+  };
+
+  String get displayValue {
+    if (type == _QuickActionType.url) {
+      // Show just the domain
+      try {
+        final uri = Uri.parse(value);
+        if (uri.host.isNotEmpty) return uri.host;
+      } catch (_) {}
+      // Fallback: strip protocol
+      return value
+          .replaceFirst(RegExp(r'https?://'), '')
+          .replaceFirst(RegExp(r'/.*'), '');
+    }
+    return value;
+  }
+}
+
+// --- Quick action pill widget ---
+class _QuickActionPill extends StatelessWidget {
+  final _QuickActionItem action;
+  final VoidCallback onTap;
+
+  const _QuickActionPill({required this.action, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: action.color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(color: action.color.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(action.icon, size: 13, color: action.color),
+            const SizedBox(width: 5),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 160),
+              child: Text(
+                action.displayValue,
+                style: TextStyle(
+                  color: action.color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // --- Media tile (photo or video) ---
 class _MediaTile extends StatelessWidget {
   final CaptureItem item;
@@ -543,8 +737,19 @@ class _MediaTile extends StatelessWidget {
     this.onLongPress,
   });
 
+  String? get _firstOcrLine {
+    final text = item.rawText;
+    if (text == null || text.trim().isEmpty) return null;
+    final lines = text.split('\n').where((l) => l.trim().isNotEmpty);
+    if (lines.isEmpty) return null;
+    final first = lines.first.trim();
+    return first.length > 60 ? '${first.substring(0, 60)}...' : first;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final ocrLine = _firstOcrLine;
+
     return GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
@@ -566,6 +771,38 @@ class _MediaTile extends StatelessWidget {
               color: MijigiColors.surfaceLight,
               child: const Icon(Icons.image_rounded,
                   color: MijigiColors.textTertiary, size: 24),
+            ),
+          // OCR text strip at bottom
+          if (ocrLine != null)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.75),
+                    ],
+                  ),
+                ),
+                child: Text(
+                  ocrLine,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w500,
+                    height: 1.2,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
           // Video play icon
           if (item.type == CaptureType.video)
@@ -600,7 +837,7 @@ class _MediaTile extends StatelessWidget {
           // Processing
           if (!item.isProcessed)
             Positioned(
-              bottom: 4,
+              bottom: ocrLine != null ? 20 : 4,
               right: 4,
               child: SizedBox(
                 width: 10,
