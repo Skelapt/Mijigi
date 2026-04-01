@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -43,6 +44,8 @@ class AppProvider extends ChangeNotifier {
   StorageService get storage => _storage;
 
   String? _lastClipboardText;
+  Timer? _clipboardTimer;
+  bool _clipboardMonitorActive = false;
 
   Future<void> init() async {
     _isLoading = true;
@@ -51,16 +54,20 @@ class AppProvider extends ChangeNotifier {
     await _storage.init();
     _items = _storage.getAllItems();
 
+    // Set _lastClipboardText from most recent saved clipboard item
+    final recentClip = _items
+        .where((i) => i.type == CaptureType.clipboard)
+        .toList();
+    if (recentClip.isNotEmpty) {
+      _lastClipboardText = recentClip.first.rawText?.trim();
+    }
+
     _isLoading = false;
     notifyListeners();
 
     _processUnprocessedItems();
-
-    // Auto-import device photos
     _autoImportPhotos();
-
-    // Start clipboard monitoring
-    _checkClipboard();
+    startClipboardMonitor();
   }
 
   /// Auto-import photos on startup (pro behaviour)
@@ -71,7 +78,26 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
-  /// Check clipboard for new content and auto-save
+  /// Start polling clipboard every 3 seconds
+  void startClipboardMonitor() {
+    if (_clipboardMonitorActive) return;
+    _clipboardMonitorActive = true;
+    _clipboardTimer?.cancel();
+    _clipboardTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      _checkClipboard();
+    });
+    // Also check immediately
+    _checkClipboard();
+  }
+
+  /// Stop clipboard polling (when app goes to background)
+  void stopClipboardMonitor() {
+    _clipboardMonitorActive = false;
+    _clipboardTimer?.cancel();
+    _clipboardTimer = null;
+  }
+
+  /// Manual check - called from UI
   Future<void> checkClipboardNow() async {
     await _checkClipboard();
   }
@@ -80,15 +106,17 @@ class AppProvider extends ChangeNotifier {
     try {
       final data = await Clipboard.getData(Clipboard.kTextPlain);
       final text = data?.text?.trim();
-      if (text != null && text.isNotEmpty && text != _lastClipboardText) {
-        _lastClipboardText = text;
-        // Check it's not already saved (compare trimmed)
-        final alreadySaved = _items.any((i) =>
-            i.type == CaptureType.clipboard && i.rawText?.trim() == text);
-        if (!alreadySaved) {
-          debugPrint('[Mijigi] Auto-saving clipboard: ${text.length} chars');
-          await captureClipboard(text);
-        }
+      if (text == null || text.isEmpty) return;
+      if (text == _lastClipboardText) return;
+
+      _lastClipboardText = text;
+
+      // Check not already saved
+      final alreadySaved = _items.any((i) =>
+          i.type == CaptureType.clipboard && i.rawText?.trim() == text);
+      if (!alreadySaved) {
+        debugPrint('[Mijigi] Auto-saving clipboard: ${text.length} chars');
+        await captureClipboard(text);
       }
     } catch (e) {
       debugPrint('[Mijigi] Clipboard read failed: $e');
@@ -482,6 +510,7 @@ class AppProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _clipboardTimer?.cancel();
     _ocr.dispose();
     _labeling.dispose();
     super.dispose();
