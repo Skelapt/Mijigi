@@ -17,6 +17,19 @@ class ScannerTabScreen extends StatefulWidget {
 class _ScannerTabScreenState extends State<ScannerTabScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _isCapturing = false;
+  bool _autoLaunched = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-open camera when user first visits this tab
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_autoLaunched) {
+        _autoLaunched = true;
+        _captureDocument();
+      }
+    });
+  }
 
   Future<void> _captureDocument() async {
     if (_isCapturing) return;

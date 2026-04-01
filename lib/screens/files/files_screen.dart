@@ -38,6 +38,12 @@ class _FilesScreenState extends State<FilesScreen> {
         return path.endsWith('.doc') || path.endsWith('.docx') ||
             path.endsWith('.txt') || path.endsWith('.rtf');
       }).toList();
+    } else if (_selectedFilter == 'spreadsheets') {
+      items = items.where((i) {
+        final path = i.filePath?.toLowerCase() ?? '';
+        return path.endsWith('.xls') || path.endsWith('.xlsx') ||
+            path.endsWith('.csv') || path.endsWith('.ods');
+      }).toList();
     } else if (_selectedFilter == 'notes') {
       items = items.where((i) => i.type == CaptureType.note).toList();
     }
@@ -69,6 +75,11 @@ class _FilesScreenState extends State<FilesScreen> {
           final path = i.filePath?.toLowerCase() ?? '';
           return path.endsWith('.doc') || path.endsWith('.docx') ||
               path.endsWith('.txt') || path.endsWith('.rtf');
+        }).length;
+        final spreadsheetCount = allFiles.where((i) {
+          final path = i.filePath?.toLowerCase() ?? '';
+          return path.endsWith('.xls') || path.endsWith('.xlsx') ||
+              path.endsWith('.csv') || path.endsWith('.ods');
         }).length;
         final noteCount = allFiles.where((i) => i.type == CaptureType.note).length;
 
@@ -243,6 +254,12 @@ class _FilesScreenState extends State<FilesScreen> {
                         const SizedBox(width: 6),
                         _chip('Documents', docCount, _selectedFilter == 'docs',
                             () => setState(() => _selectedFilter = 'docs')),
+                      ],
+                      if (spreadsheetCount > 0) ...[
+                        const SizedBox(width: 6),
+                        _chip('Spreadsheets', spreadsheetCount,
+                            _selectedFilter == 'spreadsheets',
+                            () => setState(() => _selectedFilter = 'spreadsheets')),
                       ],
                       if (noteCount > 0) ...[
                         const SizedBox(width: 6),

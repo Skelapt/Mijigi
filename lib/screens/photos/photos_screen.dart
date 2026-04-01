@@ -101,16 +101,7 @@ class _PhotosScreenState extends State<PhotosScreen>
         }
       }
 
-      final amounts = data['amounts'] as List?;
-      if (amounts != null) {
-        for (final a in amounts) {
-          actions.add(_QuickActionItem(
-            value: a.toString(),
-            type: _QuickActionType.amount,
-            createdAt: item.createdAt,
-          ));
-        }
-      }
+      // No amounts - only emails, links, addresses
     }
 
     // Sort most recent first, deduplicate by value, take 20
@@ -143,45 +134,9 @@ class _PhotosScreenState extends State<PhotosScreen>
           backgroundColor: MijigiColors.background,
           body: NestedScrollView(
             headerSliverBuilder: (context, _) => [
-              const SliverToBoxAdapter(child: SizedBox(height: 56)),
+              const SliverToBoxAdapter(child: SizedBox(height: 48)),
 
-              // Title
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text(
-                        'Photos',
-                        style: TextStyle(
-                          color: MijigiColors.textPrimary,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      if (provider.isProcessing || provider.isImporting)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: SizedBox(
-                            width: 12,
-                            height: 12,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: MijigiColors.primary,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
-
-              // Sub-tabs: All | Collections
+              // Sub-tabs: All | Collections (right at top, no header)
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -756,7 +711,18 @@ class _MediaTile extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (item.filePath != null)
+          // Use thumbnail for videos, file path for images
+          if (item.type == CaptureType.video && item.thumbnailPath != null)
+            Image.file(
+              File(item.thumbnailPath!),
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                color: MijigiColors.surfaceLight,
+                child: const Icon(Icons.videocam_rounded,
+                    color: MijigiColors.textTertiary, size: 24),
+              ),
+            )
+          else if (item.filePath != null)
             Image.file(
               File(item.filePath!),
               fit: BoxFit.cover,

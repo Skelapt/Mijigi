@@ -125,10 +125,27 @@ class PhotoImportService {
               type = CaptureType.photo;
             }
 
+            // Generate thumbnail for videos
+            String? thumbnailPath;
+            if (isVideo) {
+              try {
+                final thumbData = await asset.thumbnailDataWithSize(
+                  const ThumbnailSize(300, 300),
+                );
+                if (thumbData != null) {
+                  thumbnailPath = '${mijigiDir.path}/thumb_${_uuid.v4()}.jpg';
+                  await File(thumbnailPath).writeAsBytes(thumbData);
+                }
+              } catch (e) {
+                debugPrint('Thumbnail generation failed: $e');
+              }
+            }
+
             // Create capture item
             final item = CaptureItem(
               id: existingKey,
               filePath: newPath,
+              thumbnailPath: thumbnailPath,
               type: type,
               createdAt: asset.createDateTime,
               isProcessed: isVideo, // videos don't need OCR processing
