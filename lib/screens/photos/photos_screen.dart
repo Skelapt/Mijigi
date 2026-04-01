@@ -15,23 +15,37 @@ class PhotosScreen extends StatefulWidget {
   State<PhotosScreen> createState() => _PhotosScreenState();
 }
 
-class _PhotosScreenState extends State<PhotosScreen> {
-  String _filter = 'all'; // 'all', 'screenshots', 'things'
+class _PhotosScreenState extends State<PhotosScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  String _filter = 'all';
   String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   List<CaptureItem> _getFilteredItems(AppProvider provider) {
     var items = provider.activeItems
-        .where((i) => i.isImageType)
+        .where((i) => i.isImageType || i.type == CaptureType.video)
         .toList();
 
-    // Apply filter
     if (_filter == 'screenshots') {
       items = items.where((i) => i.type == CaptureType.screenshot).toList();
+    } else if (_filter == 'videos') {
+      items = items.where((i) => i.type == CaptureType.video).toList();
     } else if (_filter == 'things') {
       items = items.where((i) => i.type == CaptureType.photo).toList();
     }
 
-    // Apply search
     if (_searchQuery.isNotEmpty) {
       final results = provider.searchImages(_searchQuery);
       final resultIds = results.map((r) => r.item.id).toSet();
@@ -45,17 +59,19 @@ class _PhotosScreenState extends State<PhotosScreen> {
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
-        final items = _getFilteredItems(provider);
-        final allImages = provider.activeItems.where((i) => i.isImageType);
+        final allMedia = provider.activeItems
+            .where((i) => i.isImageType || i.type == CaptureType.video);
         final screenshotCount =
-            allImages.where((i) => i.type == CaptureType.screenshot).length;
-        final thingCount =
-            allImages.where((i) => i.type == CaptureType.photo).length;
+            allMedia.where((i) => i.type == CaptureType.screenshot).length;
+        final videoCount =
+            allMedia.where((i) => i.type == CaptureType.video).length;
+        final photoCount =
+            allMedia.where((i) => i.type == CaptureType.photo).length;
 
         return Scaffold(
           backgroundColor: MijigiColors.background,
-          body: CustomScrollView(
-            slivers: [
+          body: NestedScrollView(
+            headerSliverBuilder: (context, _) => [
               const SliverToBoxAdapter(child: SizedBox(height: 56)),
 
               // Title
@@ -63,6 +79,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       const Text(
                         'Photos',
@@ -73,187 +90,110 @@ class _PhotosScreenState extends State<PhotosScreen> {
                           letterSpacing: -0.5,
                         ),
                       ),
-                      if (provider.isProcessing) ...[
-                        const SizedBox(width: 10),
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: MijigiColors.primary,
+                      const SizedBox(width: 8),
+                      if (provider.isProcessing || provider.isImporting)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: MijigiColors.primary,
+                            ),
                           ),
                         ),
-                      ],
                     ],
                   ),
                 ),
               ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
-              // Search bar
+              // Sub-tabs: All | Collections
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: MijigiSearchBar(
-                    hint: 'Search photos by description...',
-                    onChanged: (q) => setState(() => _searchQuery = q),
-                  ),
-                ),
-              ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
-
-              // Filters
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 36,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    children: [
-                      _buildChip(
-                          'All', allImages.length, _filter == 'all',
-                          () => setState(() => _filter = 'all')),
-                      const SizedBox(width: 8),
-                      _buildChip(
-                          'Screenshots', screenshotCount,
-                          _filter == 'screenshots',
-                          () => setState(() => _filter = 'screenshots')),
-                      const SizedBox(width: 8),
-                      _buildChip(
-                          'Things', thingCount, _filter == 'things',
-                          () => setState(() => _filter = 'things')),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
-
-              // Import progress banner
-              if (provider.isImporting && provider.importProgress != null)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 20, right: 20, bottom: 12),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: MijigiColors.primary.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: MijigiColors.primary.withValues(alpha: 0.2)),
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: MijigiColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: MijigiColors.border),
+                    ),
+                    child: TabBar(
+                      controller: _tabController,
+                      indicator: BoxDecoration(
+                        color: MijigiColors.primary,
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              SizedBox(
-                                width: 14, height: 14,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: MijigiColors.primary,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Syncing ${provider.importProgress!.processed}/${provider.importProgress!.total} photos...',
-                                  style: const TextStyle(
-                                    color: MijigiColors.textSecondary,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (provider.importProgress!.message.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              provider.importProgress!.message,
-                              style: const TextStyle(color: MijigiColors.textTertiary, fontSize: 11),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                          const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: provider.importProgress!.total > 0
-                                  ? provider.importProgress!.processed / provider.importProgress!.total
-                                  : 0,
-                              backgroundColor: MijigiColors.border,
-                              color: MijigiColors.primary,
-                              minHeight: 3,
-                            ),
-                          ),
-                        ],
-                      ),
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      dividerColor: Colors.transparent,
+                      labelColor: Colors.white,
+                      unselectedLabelColor: MijigiColors.textSecondary,
+                      labelStyle: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w600),
+                      tabs: const [
+                        Tab(text: 'All'),
+                        Tab(text: 'Collections'),
+                      ],
                     ),
                   ),
                 ),
+              ),
 
-              // Processing indicator
-              if (provider.isProcessing && !provider.isImporting)
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+
+              // Import progress
+              if (provider.isImporting && provider.importProgress != null)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.only(left: 20, right: 20, bottom: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.all(10),
+                      margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
-                        color: MijigiColors.surface,
+                        color: MijigiColors.primary.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: MijigiColors.border),
+                        border: Border.all(
+                            color:
+                                MijigiColors.primary.withValues(alpha: 0.15)),
                       ),
                       child: Row(
                         children: [
                           SizedBox(
-                            width: 12, height: 12,
+                            width: 14,
+                            height: 14,
                             child: CircularProgressIndicator(
-                              strokeWidth: 1.5, color: MijigiColors.primary,
+                              strokeWidth: 2,
+                              color: MijigiColors.primary,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Scanning images...',
-                            style: TextStyle(color: MijigiColors.textTertiary, fontSize: 12),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Syncing ${provider.importProgress!.processed}/${provider.importProgress!.total}',
+                              style: const TextStyle(
+                                  color: MijigiColors.textSecondary,
+                                  fontSize: 12),
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ),
                 ),
-
-              // Photo grid - 3 columns
-              if (items.isEmpty)
-                SliverToBoxAdapter(child: _buildEmpty())
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  sliver: SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 2,
-                      mainAxisSpacing: 2,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final item = items[index];
-                        return _PhotoTile(
-                          item: item,
-                          onTap: () => _openItem(item),
-                          onLongPress: () => _showActions(provider, item),
-                        );
-                      },
-                      childCount: items.length,
-                    ),
-                  ),
-                ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                // TAB 1: All photos/videos
+                _buildAllTab(provider, allMedia.length, screenshotCount,
+                    videoCount, photoCount),
+                // TAB 2: Collections
+                _buildCollectionsTab(provider),
+              ],
+            ),
           ),
           floatingActionButton: FloatingActionButton(
             backgroundColor: MijigiColors.primary,
@@ -265,41 +205,161 @@ class _PhotosScreenState extends State<PhotosScreen> {
     );
   }
 
-  Widget _buildChip(
-      String label, int count, bool active, VoidCallback onTap) {
+  Widget _buildAllTab(AppProvider provider, int total, int screenshots,
+      int videos, int photos) {
+    final items = _getFilteredItems(provider);
+
+    return CustomScrollView(
+      slivers: [
+        // Search
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: MijigiSearchBar(
+              hint: 'Search by description...',
+              onChanged: (q) => setState(() => _searchQuery = q),
+            ),
+          ),
+        ),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 10)),
+
+        // Filters
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 34,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              children: [
+                _chip('All', total, _filter == 'all',
+                    () => setState(() => _filter = 'all')),
+                const SizedBox(width: 6),
+                _chip('Screenshots', screenshots, _filter == 'screenshots',
+                    () => setState(() => _filter = 'screenshots')),
+                const SizedBox(width: 6),
+                _chip('Videos', videos, _filter == 'videos',
+                    () => setState(() => _filter = 'videos')),
+                const SizedBox(width: 6),
+                _chip('Things', photos, _filter == 'things',
+                    () => setState(() => _filter = 'things')),
+              ],
+            ),
+          ),
+        ),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 10)),
+
+        // Grid
+        if (items.isEmpty)
+          SliverToBoxAdapter(child: _buildEmpty())
+        else
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 2,
+                mainAxisSpacing: 2,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final item = items[index];
+                  return _MediaTile(
+                    item: item,
+                    onTap: () => _openItem(item),
+                    onLongPress: () => _showActions(provider, item),
+                  );
+                },
+                childCount: items.length,
+              ),
+            ),
+          ),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 100)),
+      ],
+    );
+  }
+
+  Widget _buildCollectionsTab(AppProvider provider) {
+    final collections = provider.getSmartCollections();
+
+    return CustomScrollView(
+      slivers: [
+        const SliverToBoxAdapter(child: SizedBox(height: 8)),
+        if (collections.isEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 60),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.collections_bookmark_rounded,
+                        size: 48,
+                        color: MijigiColors.textTertiary
+                            .withValues(alpha: 0.5)),
+                    const SizedBox(height: 12),
+                    const Text('No collections yet',
+                        style: TextStyle(
+                            color: MijigiColors.textSecondary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
+                    const Text(
+                        'Collections auto-create as Mijigi scans your photos',
+                        style: TextStyle(
+                            color: MijigiColors.textTertiary, fontSize: 13)),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.0,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final collection = collections[index];
+                  return _CollectionCard(
+                    collection: collection,
+                    onTap: () => _openCollection(provider, collection),
+                  );
+                },
+                childCount: collections.length,
+              ),
+            ),
+          ),
+        const SliverToBoxAdapter(child: SizedBox(height: 100)),
+      ],
+    );
+  }
+
+  Widget _chip(String label, int count, bool active, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           color: active ? MijigiColors.primary : MijigiColors.surface,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: active ? MijigiColors.primary : MijigiColors.border,
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: active ? Colors.white : MijigiColors.textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              '$count',
-              style: TextStyle(
-                color: active
-                    ? Colors.white.withValues(alpha: 0.7)
-                    : MijigiColors.textTertiary,
-                fontSize: 12,
-              ),
-            ),
-          ],
+        child: Text(
+          '$label $count',
+          style: TextStyle(
+            color: active ? Colors.white : MijigiColors.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
@@ -307,7 +367,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
 
   Widget _buildEmpty() {
     return Padding(
-      padding: const EdgeInsets.only(top: 80),
+      padding: const EdgeInsets.only(top: 60),
       child: Center(
         child: Column(
           children: [
@@ -320,10 +380,6 @@ class _PhotosScreenState extends State<PhotosScreen> {
                     color: MijigiColors.textSecondary,
                     fontSize: 16,
                     fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            const Text('Tap + to add photos or import from gallery',
-                style:
-                    TextStyle(color: MijigiColors.textTertiary, fontSize: 13)),
           ],
         ),
       ),
@@ -355,7 +411,8 @@ class _PhotosScreenState extends State<PhotosScreen> {
               ListTile(
                 leading: const Icon(Icons.camera_alt_rounded,
                     color: MijigiColors.primary),
-                title: const Text('Take Photo', style: TextStyle(color: MijigiColors.textPrimary)),
+                title: const Text('Take Photo',
+                    style: TextStyle(color: MijigiColors.textPrimary)),
                 onTap: () async {
                   Navigator.pop(ctx);
                   final item = await provider.captureFromCamera();
@@ -363,9 +420,21 @@ class _PhotosScreenState extends State<PhotosScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library_rounded,
+                leading: const Icon(Icons.videocam_rounded,
                     color: MijigiColors.primaryLight),
-                title: const Text('Choose from Gallery', style: TextStyle(color: MijigiColors.textPrimary)),
+                title: const Text('Record Video',
+                    style: TextStyle(color: MijigiColors.textPrimary)),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final item = await provider.captureVideoFromCamera();
+                  if (item != null && mounted) _openItem(item);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_rounded,
+                    color: MijigiColors.accent),
+                title: const Text('Choose from Gallery',
+                    style: TextStyle(color: MijigiColors.textPrimary)),
                 onTap: () async {
                   Navigator.pop(ctx);
                   final item = await provider.captureFromGallery();
@@ -373,27 +442,14 @@ class _PhotosScreenState extends State<PhotosScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library_outlined,
-                    color: MijigiColors.accent),
-                title: const Text('Import Multiple', style: TextStyle(color: MijigiColors.textPrimary)),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  await provider.captureMultipleFromGallery();
-                },
-              ),
-              ListTile(
                 leading: const Icon(Icons.sync_rounded,
                     color: MijigiColors.textSecondary),
-                title: const Text('Sync Device Photos', style: TextStyle(color: MijigiColors.textPrimary)),
-                subtitle: const Text('Import all photos from your device',
-                    style: TextStyle(
-                        color: MijigiColors.textTertiary, fontSize: 12)),
+                title: const Text('Sync Device Photos',
+                    style: TextStyle(color: MijigiColors.textPrimary)),
                 onTap: () async {
                   Navigator.pop(ctx);
-                  final hasPermission = await provider.requestPhotoPermission();
-                  if (hasPermission) {
-                    provider.importDevicePhotos();
-                  }
+                  final ok = await provider.requestPhotoPermission();
+                  if (ok) provider.importDevicePhotos();
                 },
               ),
             ],
@@ -407,6 +463,15 @@ class _PhotosScreenState extends State<PhotosScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => ItemDetailScreen(itemId: item.id)),
+    );
+  }
+
+  void _openCollection(AppProvider provider, SmartCollection collection) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _CollectionDetailScreen(collection: collection),
+      ),
     );
   }
 
@@ -440,7 +505,9 @@ class _PhotosScreenState extends State<PhotosScreen> {
                       : Icons.push_pin_rounded,
                   color: MijigiColors.primary,
                 ),
-                title: Text(item.isPinned ? 'Unpin' : 'Pin', style: const TextStyle(color: MijigiColors.textPrimary)),
+                title: Text(item.isPinned ? 'Unpin' : 'Pin',
+                    style:
+                        const TextStyle(color: MijigiColors.textPrimary)),
                 onTap: () {
                   Navigator.pop(ctx);
                   provider.togglePin(item.id);
@@ -449,7 +516,8 @@ class _PhotosScreenState extends State<PhotosScreen> {
               ListTile(
                 leading: const Icon(Icons.delete_rounded,
                     color: MijigiColors.error),
-                title: const Text('Delete', style: TextStyle(color: MijigiColors.error)),
+                title: const Text('Delete',
+                    style: TextStyle(color: MijigiColors.error)),
                 onTap: () {
                   Navigator.pop(ctx);
                   provider.deleteItem(item.id);
@@ -463,12 +531,13 @@ class _PhotosScreenState extends State<PhotosScreen> {
   }
 }
 
-class _PhotoTile extends StatelessWidget {
+// --- Media tile (photo or video) ---
+class _MediaTile extends StatelessWidget {
   final CaptureItem item;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
-  const _PhotoTile({
+  const _MediaTile({
     required this.item,
     required this.onTap,
     this.onLongPress,
@@ -498,6 +567,20 @@ class _PhotoTile extends StatelessWidget {
               child: const Icon(Icons.image_rounded,
                   color: MijigiColors.textTertiary, size: 24),
             ),
+          // Video play icon
+          if (item.type == CaptureType.video)
+            Center(
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.play_arrow_rounded,
+                    color: Colors.white, size: 20),
+              ),
+            ),
           // Screenshot badge
           if (item.type == CaptureType.screenshot)
             Positioned(
@@ -507,28 +590,28 @@ class _PhotoTile extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
+                  color: Colors.black.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Icon(Icons.screenshot_rounded,
-                    size: 12, color: Colors.white70),
+                    size: 10, color: Colors.white70),
               ),
             ),
-          // Processing indicator
+          // Processing
           if (!item.isProcessed)
             Positioned(
               bottom: 4,
               right: 4,
               child: SizedBox(
-                width: 12,
-                height: 12,
+                width: 10,
+                height: 10,
                 child: CircularProgressIndicator(
                   strokeWidth: 1.5,
                   color: MijigiColors.primary,
                 ),
               ),
             ),
-          // Pin indicator
+          // Pinned
           if (item.isPinned)
             Positioned(
               top: 4,
@@ -536,15 +619,157 @@ class _PhotoTile extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
+                  color: Colors.black.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Icon(Icons.push_pin_rounded,
-                    size: 12, color: MijigiColors.primary),
+                    size: 10, color: MijigiColors.primary),
               ),
             ),
         ],
       ),
+    );
+  }
+}
+
+// --- Collection card ---
+class _CollectionCard extends StatelessWidget {
+  final SmartCollection collection;
+  final VoidCallback onTap;
+
+  const _CollectionCard({required this.collection, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: MijigiColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: MijigiColors.border),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Cover image
+            if (collection.coverPath != null)
+              Image.file(
+                File(collection.coverPath!),
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: collection.color.withValues(alpha: 0.08),
+                  child: Icon(collection.icon,
+                      color: collection.color, size: 36),
+                ),
+              )
+            else
+              Container(
+                color: collection.color.withValues(alpha: 0.08),
+                child: Icon(collection.icon,
+                    color: collection.color, size: 36),
+              ),
+            // Gradient overlay
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.7),
+                    ],
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      collection.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '${collection.count} items',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- Collection detail screen ---
+class _CollectionDetailScreen extends StatelessWidget {
+  final SmartCollection collection;
+
+  const _CollectionDetailScreen({required this.collection});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AppProvider>(
+      builder: (context, provider, _) {
+        final items = provider.getCollectionItems(collection.key);
+
+        return Scaffold(
+          backgroundColor: MijigiColors.background,
+          appBar: AppBar(
+            backgroundColor: MijigiColors.background,
+            title: Row(
+              children: [
+                Icon(collection.icon, color: collection.color, size: 20),
+                const SizedBox(width: 8),
+                Text(collection.name),
+              ],
+            ),
+          ),
+          body: items.isEmpty
+              ? const Center(
+                  child: Text('No items',
+                      style: TextStyle(color: MijigiColors.textTertiary)))
+              : GridView.builder(
+                  padding: const EdgeInsets.all(2),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 2,
+                    mainAxisSpacing: 2,
+                  ),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return _MediaTile(
+                      item: item,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              ItemDetailScreen(itemId: item.id),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        );
+      },
     );
   }
 }

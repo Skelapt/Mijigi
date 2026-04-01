@@ -32,6 +32,7 @@ dependencies:
   http: ^1.6.0
 
   # PDF & Documents
+  pdf: ^3.11.1
   syncfusion_flutter_pdf: ^28.1.33
 
   # File utilities

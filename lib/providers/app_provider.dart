@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -334,10 +334,174 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- Smart Collections ---
+
+  List<SmartCollection> getSmartCollections() {
+    final collections = <SmartCollection>[];
+    final images = activeItems.where((i) => i.isImageType || i.type == CaptureType.video).toList();
+
+    // Money - items with amounts
+    final moneyItems = images.where((i) =>
+        i.extractedData != null && i.extractedData!.containsKey('amounts')).toList();
+    if (moneyItems.isNotEmpty) {
+      collections.add(SmartCollection(
+        key: 'money',
+        name: 'Money',
+        icon: Icons.attach_money_rounded,
+        color: const Color(0xFF22C55E),
+        count: moneyItems.length,
+        coverPath: moneyItems.first.filePath,
+      ));
+    }
+
+    // Contacts - items with phones or emails
+    final contactItems = images.where((i) =>
+        i.extractedData != null &&
+        (i.extractedData!.containsKey('phones') || i.extractedData!.containsKey('emails'))).toList();
+    if (contactItems.isNotEmpty) {
+      collections.add(SmartCollection(
+        key: 'contacts',
+        name: 'Contacts',
+        icon: Icons.person_rounded,
+        color: const Color(0xFF3B82F6),
+        count: contactItems.length,
+        coverPath: contactItems.first.filePath,
+      ));
+    }
+
+    // Links - items with URLs
+    final linkItems = images.where((i) =>
+        i.extractedData != null && i.extractedData!.containsKey('urls')).toList();
+    if (linkItems.isNotEmpty) {
+      collections.add(SmartCollection(
+        key: 'links',
+        name: 'Links',
+        icon: Icons.link_rounded,
+        color: const Color(0xFF8B5CF6),
+        count: linkItems.length,
+        coverPath: linkItems.first.filePath,
+      ));
+    }
+
+    // Dates - items with dates
+    final dateItems = images.where((i) =>
+        i.extractedData != null && i.extractedData!.containsKey('dates')).toList();
+    if (dateItems.isNotEmpty) {
+      collections.add(SmartCollection(
+        key: 'dates',
+        name: 'Dates',
+        icon: Icons.calendar_today_rounded,
+        color: const Color(0xFFF59E0B),
+        count: dateItems.length,
+        coverPath: dateItems.first.filePath,
+      ));
+    }
+
+    // Recipes - items with cooking keywords in rawText
+    final recipeKeywords = ['ingredient', 'tbsp', 'tsp', 'cups', 'preheat', 'oven', 'bake', 'recipe', 'minutes', 'serves'];
+    final recipeItems = images.where((i) {
+      final text = i.rawText?.toLowerCase() ?? '';
+      return recipeKeywords.where((k) => text.contains(k)).length >= 2;
+    }).toList();
+    if (recipeItems.isNotEmpty) {
+      collections.add(SmartCollection(
+        key: 'recipes',
+        name: 'Recipes',
+        icon: Icons.restaurant_rounded,
+        color: const Color(0xFFEF4444),
+        count: recipeItems.length,
+        coverPath: recipeItems.first.filePath,
+      ));
+    }
+
+    // Text Heavy - screenshots with lots of text (notes, articles)
+    final textItems = images.where((i) {
+      final text = i.rawText ?? '';
+      return text.length > 200 && i.type == CaptureType.screenshot;
+    }).toList();
+    if (textItems.isNotEmpty) {
+      collections.add(SmartCollection(
+        key: 'text',
+        name: 'Text & Notes',
+        icon: Icons.article_rounded,
+        color: const Color(0xFF06B6D4),
+        count: textItems.length,
+        coverPath: textItems.first.filePath,
+      ));
+    }
+
+    return collections;
+  }
+
+  List<CaptureItem> getCollectionItems(String key) {
+    final images = activeItems.where((i) => i.isImageType || i.type == CaptureType.video).toList();
+
+    return switch (key) {
+      'money' => images.where((i) =>
+          i.extractedData != null && i.extractedData!.containsKey('amounts')).toList(),
+      'contacts' => images.where((i) =>
+          i.extractedData != null &&
+          (i.extractedData!.containsKey('phones') || i.extractedData!.containsKey('emails'))).toList(),
+      'links' => images.where((i) =>
+          i.extractedData != null && i.extractedData!.containsKey('urls')).toList(),
+      'dates' => images.where((i) =>
+          i.extractedData != null && i.extractedData!.containsKey('dates')).toList(),
+      'recipes' => images.where((i) {
+          final text = i.rawText?.toLowerCase() ?? '';
+          final keywords = ['ingredient', 'tbsp', 'tsp', 'cups', 'preheat', 'oven', 'bake', 'recipe', 'minutes', 'serves'];
+          return keywords.where((k) => text.contains(k)).length >= 2;
+        }).toList(),
+      'text' => images.where((i) {
+          final text = i.rawText ?? '';
+          return text.length > 200 && i.type == CaptureType.screenshot;
+        }).toList(),
+      _ => [],
+    };
+  }
+
+  // --- Document Scanner ---
+
+  Future<void> captureScannedDocument({
+    required String pdfPath,
+    required String title,
+    required int pageCount,
+  }) async {
+    final item = CaptureItem(
+      id: _uuid.v4(),
+      title: title,
+      filePath: pdfPath,
+      type: CaptureType.document,
+      category: ItemCategory.document,
+      isProcessed: true,
+    );
+
+    await _storage.saveItem(item);
+    _items.insert(0, item);
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _ocr.dispose();
     _labeling.dispose();
     super.dispose();
   }
+}
+
+class SmartCollection {
+  final String key;
+  final String name;
+  final IconData icon;
+  final Color color;
+  final int count;
+  final String? coverPath;
+
+  SmartCollection({
+    required this.key,
+    required this.name,
+    required this.icon,
+    required this.color,
+    required this.count,
+    this.coverPath,
+  });
 }

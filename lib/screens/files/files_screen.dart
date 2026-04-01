@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/capture_item.dart';
 import '../../providers/app_provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../services/file_scanner_service.dart';
 import '../../theme/app_theme.dart';
+import '../scanner/scanner_review_screen.dart';
 import '../../widgets/mijigi_search_bar.dart';
 import '../item_detail/item_detail_screen.dart';
 
@@ -69,9 +71,11 @@ class _FilesScreenState extends State<FilesScreen> {
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
+        // Exclude videos too
+
         final fileItems = _getFileItems(provider);
         final allFiles = provider.activeItems.where((i) =>
-            i.type != CaptureType.photo && i.type != CaptureType.screenshot && i.type != CaptureType.clipboard).toList();
+            i.type != CaptureType.photo && i.type != CaptureType.screenshot && i.type != CaptureType.clipboard && i.type != CaptureType.video).toList();
 
         // Count by type
         final pdfCount = allFiles.where((i) =>
@@ -88,7 +92,14 @@ class _FilesScreenState extends State<FilesScreen> {
         }).length;
         final noteCount = allFiles.where((i) => i.type == CaptureType.note).length;
 
-        return CustomScrollView(
+        return Scaffold(
+          backgroundColor: MijigiColors.background,
+          floatingActionButton: FloatingActionButton(
+            backgroundColor: MijigiColors.primary,
+            onPressed: () => _scanDocument(context),
+            child: const Icon(Icons.document_scanner_rounded, color: Colors.white),
+          ),
+          body: CustomScrollView(
           slivers: [
             const SliverToBoxAdapter(child: SizedBox(height: 60)),
 
@@ -310,9 +321,26 @@ class _FilesScreenState extends State<FilesScreen> {
 
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
+        ),
         );
       },
     );
+  }
+
+  Future<void> _scanDocument(BuildContext context) async {
+    final picker = ImagePicker();
+    final XFile? photo = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 95,
+    );
+    if (photo != null && context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ScannerReviewScreen(initialImagePath: photo.path),
+        ),
+      );
+    }
   }
 
   Widget _buildChip(String label, int count, bool isActive, Color color, VoidCallback onTap) {
