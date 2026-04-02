@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:open_file/open_file.dart';
 import 'package:video_player/video_player.dart';
 import '../../models/capture_item.dart';
 import '../../providers/app_provider.dart';
@@ -418,9 +419,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   }
 
   void _openPdf(String path) async {
-    final uri = Uri.file(path);
     try {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      await OpenFile.open(path);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -108,100 +108,74 @@ class _ScannerTabScreenState extends State<ScannerTabScreen> {
         return Scaffold(
           backgroundColor: MijigiColors.background,
           body: SafeArea(
-            child: CustomScrollView(
-              slivers: [
-                // Scan viewfinder area
-                SliverToBoxAdapter(
+            child: Column(
+              children: [
+                // Scan viewfinder area - takes most of the screen
+                Expanded(
+                  flex: 3,
                   child: _buildScanArea(),
                 ),
 
-                // Feature badges
-                SliverToBoxAdapter(
-                  child: _buildFeatureBadges(),
-                ),
-
-                // Recent scans header
+                // Recent scans - small section at bottom
                 if (recentScans.isNotEmpty)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.history_rounded,
-                            color: MijigiColors.textSecondary,
-                            size: 18,
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 6),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.history_rounded,
+                                color: MijigiColors.textSecondary,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Recent Scans',
+                                style: TextStyle(
+                                  color: MijigiColors.textSecondary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                '${recentScans.length}',
+                                style: const TextStyle(
+                                  color: MijigiColors.textTertiary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Recent Scans',
-                            style: TextStyle(
-                              color: MijigiColors.textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
-                            ),
+                        ),
+                        Expanded(
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            itemCount: recentScans.length,
+                            itemBuilder: (context, index) =>
+                                _buildScanItem(recentScans[index]),
                           ),
-                          const Spacer(),
-                          Text(
-                            '${recentScans.length} document${recentScans.length == 1 ? '' : 's'}',
-                            style: const TextStyle(
-                              color: MijigiColors.textTertiary,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
 
-                // Recent scans list
-                if (recentScans.isNotEmpty)
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) =>
-                          _buildScanItem(recentScans[index]),
-                      childCount: recentScans.length,
-                    ),
-                  ),
-
-                // Empty state
+                // Empty state when no scans
                 if (recentScans.isEmpty)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.description_outlined,
-                            color: MijigiColors.textTertiary,
-                            size: 48,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No scanned documents yet',
-                            style: TextStyle(
-                              color: MijigiColors.textSecondary,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Tap the scan button above to get started',
-                            style: TextStyle(
-                              color: MijigiColors.textTertiary,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                    child: Text(
+                      'No scanned documents yet',
+                      style: TextStyle(
+                        color: MijigiColors.textTertiary,
+                        fontSize: 12,
                       ),
                     ),
                   ),
-
-                // Bottom padding
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: 100),
-                ),
               ],
             ),
           ),
@@ -212,8 +186,7 @@ class _ScannerTabScreenState extends State<ScannerTabScreen> {
 
   Widget _buildScanArea() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      height: 320,
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       decoration: BoxDecoration(
         color: MijigiColors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -243,8 +216,8 @@ class _ScannerTabScreenState extends State<ScannerTabScreen> {
               onTap: _isCapturing ? null : _captureDocument,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                width: 140,
-                height: 140,
+                width: 180,
+                height: 180,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: _isCapturing
@@ -270,14 +243,14 @@ class _ScannerTabScreenState extends State<ScannerTabScreen> {
                           ? Icons.hourglass_top_rounded
                           : Icons.camera_alt_rounded,
                       color: MijigiColors.primaryLight,
-                      size: 40,
+                      size: 52,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Text(
                       _isCapturing ? 'Opening...' : 'Tap to Scan',
                       style: const TextStyle(
                         color: MijigiColors.primaryLight,
-                        fontSize: 13,
+                        fontSize: 16,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.3,
                       ),
@@ -335,6 +308,14 @@ class _ScannerTabScreenState extends State<ScannerTabScreen> {
                 ),
               ),
             ),
+          ),
+
+          // Feature badges at bottom
+          Positioned(
+            bottom: 16,
+            left: 0,
+            right: 0,
+            child: _buildFeatureBadges(),
           ),
         ],
       ),
@@ -435,7 +416,7 @@ class _ScannerTabScreenState extends State<ScannerTabScreen> {
     ];
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: features,

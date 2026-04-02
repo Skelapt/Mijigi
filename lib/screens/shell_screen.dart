@@ -29,13 +29,9 @@ class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final provider = context.read<AppProvider>();
     if (state == AppLifecycleState.resumed) {
-      // App came to foreground - start polling clipboard
-      provider.startClipboardMonitor();
-    } else if (state == AppLifecycleState.paused) {
-      // App went to background - stop polling to save battery
-      provider.stopClipboardMonitor();
+      // App came to foreground
+      context.read<AppProvider>().checkClipboardNow();
     }
   }
 

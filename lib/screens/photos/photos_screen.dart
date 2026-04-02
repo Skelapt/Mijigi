@@ -322,7 +322,7 @@ class _PhotosScreenState extends State<PhotosScreen>
                 crossAxisCount: 3,
                 crossAxisSpacing: 2,
                 mainAxisSpacing: 2,
-                childAspectRatio: 0.85,
+                childAspectRatio: 1.0,
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) {

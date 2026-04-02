@@ -9,7 +9,6 @@ import '../services/ocr_service.dart';
 import '../services/labeling_service.dart';
 import '../services/search_service.dart';
 import '../services/categorisation_service.dart';
-import '../services/clipboard_service.dart';
 import '../services/photo_import_service.dart';
 
 class AppProvider extends ChangeNotifier {
@@ -43,11 +42,6 @@ class AppProvider extends ChangeNotifier {
   int get totalItems => activeItems.length;
   StorageService get storage => _storage;
 
-  String? _lastClipboardText;
-  Timer? _clipboardTimer;
-  StreamSubscription<String>? _clipSub;
-  final ClipboardService _clipService = ClipboardService();
-
   Future<void> init() async {
     _isLoading = true;
     notifyListeners();
@@ -55,20 +49,11 @@ class AppProvider extends ChangeNotifier {
     await _storage.init();
     _items = _storage.getAllItems();
 
-    // Set _lastClipboardText from most recent saved clipboard item
-    final recentClip = _items
-        .where((i) => i.type == CaptureType.clipboard)
-        .toList();
-    if (recentClip.isNotEmpty) {
-      _lastClipboardText = recentClip.first.rawText?.trim();
-    }
-
     _isLoading = false;
     notifyListeners();
 
     _processUnprocessedItems();
     _autoImportPhotos();
-    startClipboardMonitor();
   }
 
   /// Auto-import photos on startup (pro behaviour)
@@ -79,60 +64,9 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
-  /// Start native clipboard listener + fallback timer
-  void startClipboardMonitor() {
-    // Native Android listener - fires IMMEDIATELY on clipboard change
-    _clipSub ??= _clipService.onClipboardChanged.listen((text) {
-      final trimmed = text.trim();
-      if (trimmed.isNotEmpty && trimmed != _lastClipboardText) {
-        _lastClipboardText = trimmed;
-        final alreadySaved = _items.any((i) =>
-            i.type == CaptureType.clipboard && i.rawText?.trim() == trimmed);
-        if (!alreadySaved) {
-          debugPrint('[Mijigi] Native clipboard captured: ${trimmed.length} chars');
-          captureClipboard(trimmed);
-        }
-      }
-    });
-
-    // Fallback timer every 1 second (for when native listener doesn't work)
-    _clipboardTimer?.cancel();
-    _clipboardTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      _checkClipboard();
-    });
-    _checkClipboard();
-  }
-
-  /// Stop clipboard monitoring
-  void stopClipboardMonitor() {
-    _clipboardTimer?.cancel();
-    _clipboardTimer = null;
-    // Keep native listener running even in background
-  }
-
-  /// Manual check
+  /// Manual check (no-op, auto-capture removed)
   Future<void> checkClipboardNow() async {
-    await _checkClipboard();
-  }
-
-  Future<void> _checkClipboard() async {
-    try {
-      // Try native channel first, fall back to Flutter API
-      final text = (await _clipService.getClipboardText())?.trim();
-      if (text == null || text.isEmpty) return;
-      if (text == _lastClipboardText) return;
-
-      _lastClipboardText = text;
-
-      final alreadySaved = _items.any((i) =>
-          i.type == CaptureType.clipboard && i.rawText?.trim() == text);
-      if (!alreadySaved) {
-        debugPrint('[Mijigi] Timer clipboard captured: ${text.length} chars');
-        await captureClipboard(text);
-      }
-    } catch (e) {
-      debugPrint('[Mijigi] Clipboard check failed: $e');
-    }
+    return;
   }
 
   void setTab(int index) {
@@ -530,8 +464,6 @@ class AppProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _clipboardTimer?.cancel();
-    _clipSub?.cancel();
     _ocr.dispose();
     _labeling.dispose();
     super.dispose();
