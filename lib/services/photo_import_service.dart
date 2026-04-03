@@ -5,11 +5,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/capture_item.dart';
 import 'ocr_service.dart';
+import 'labeling_service.dart';
 import 'categorisation_service.dart';
 import 'storage_service.dart';
 
 class PhotoImportService {
   final OcrService _ocr = OcrService();
+  final LabelingService _labeling = LabelingService();
   final CategorisationService _categorisation = CategorisationService();
   final _uuid = const Uuid();
 
@@ -151,10 +153,20 @@ class PhotoImportService {
               isProcessed: isVideo, // videos don't need OCR processing
             );
 
-            // Try OCR only for images (not videos)
+            // Run OCR + image labeling for images (not videos)
             if (!isVideo) {
               try {
-                final ocrResult = await _ocr.processImage(newPath);
+                // Run both in parallel for speed
+                final results = await Future.wait([
+                  _ocr.processImage(newPath),
+                  _labeling.labelImage(newPath),
+                ]);
+                final ocrResult = results[0] as OcrResult;
+                final labels = results[1] as List<String>;
+
+                // Store labels for visual search
+                item.labels = labels;
+
                 if (ocrResult.isNotEmpty) {
                   item.rawText = ocrResult.fullText;
                   item.category = _categorisation.categorise(ocrResult.fullText);
@@ -162,7 +174,7 @@ class PhotoImportService {
                       _categorisation.extractData(ocrResult.fullText);
                 }
               } catch (e) {
-                debugPrint('OCR failed for asset: $e');
+                debugPrint('Processing failed for asset: $e');
               }
               item.isProcessed = true;
             }
