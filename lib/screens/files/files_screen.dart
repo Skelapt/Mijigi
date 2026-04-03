@@ -307,22 +307,50 @@ class _FilesScreenState extends State<FilesScreen> {
   Widget _chip(String label, int count, bool active, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? MijigiColors.primary : MijigiColors.surface,
-          borderRadius: BorderRadius.circular(8),
+          color: active ? MijigiColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: active ? MijigiColors.primary : MijigiColors.border,
           ),
         ),
-        child: Text(
-          '$label $count',
-          style: TextStyle(
-            color: active ? Colors.white : MijigiColors.textSecondary,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: active ? Colors.white : MijigiColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (count > 0) ...[
+              const SizedBox(width: 5),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: active
+                      ? Colors.white.withValues(alpha: 0.2)
+                      : MijigiColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    color: active
+                        ? Colors.white.withValues(alpha: 0.9)
+                        : MijigiColors.textTertiary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

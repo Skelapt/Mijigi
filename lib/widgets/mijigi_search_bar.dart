@@ -40,23 +40,17 @@ class _MijigiSearchBarState extends State<MijigiSearchBar> {
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      height: 44,
       decoration: BoxDecoration(
-        color: MijigiColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        color: _hasFocus ? MijigiColors.surfaceLight : MijigiColors.surface,
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: _hasFocus ? MijigiColors.primary.withValues(alpha: 0.5) : MijigiColors.border,
-          width: _hasFocus ? 1.5 : 1,
+          color: _hasFocus
+              ? MijigiColors.primary.withValues(alpha: 0.4)
+              : MijigiColors.border,
         ),
-        boxShadow: _hasFocus
-            ? [
-                BoxShadow(
-                  color: MijigiColors.primary.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  spreadRadius: 0,
-                ),
-              ]
-            : null,
       ),
       child: Focus(
         onFocusChange: (focused) => setState(() => _hasFocus = focused),
@@ -67,37 +61,50 @@ class _MijigiSearchBarState extends State<MijigiSearchBar> {
           onTap: widget.onTap,
           style: const TextStyle(
             color: MijigiColors.textPrimary,
-            fontSize: 16,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
           ),
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: TextStyle(
+            hintStyle: const TextStyle(
               color: MijigiColors.textTertiary,
-              fontSize: 16,
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
             ),
-            prefixIcon: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+            prefixIcon: Padding(
+              padding: const EdgeInsets.only(left: 14, right: 8),
               child: Icon(
                 Icons.search_rounded,
-                color: _hasFocus ? MijigiColors.primary : MijigiColors.textTertiary,
-                size: 22,
+                color: _hasFocus
+                    ? MijigiColors.primary
+                    : MijigiColors.textTertiary,
+                size: 20,
               ),
             ),
+            prefixIconConstraints:
+                const BoxConstraints(minWidth: 0, minHeight: 0),
             suffixIcon: _controller.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 20),
-                    color: MijigiColors.textTertiary,
-                    onPressed: () {
-                      _controller.clear();
-                      widget.onChanged('');
-                    },
+                ? Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      color: MijigiColors.textTertiary,
+                      onPressed: () {
+                        _controller.clear();
+                        widget.onChanged('');
+                      },
+                      constraints: const BoxConstraints(
+                          minWidth: 32, minHeight: 32),
+                      padding: EdgeInsets.zero,
+                    ),
                   )
                 : null,
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
             filled: false,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 16),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
           ),
         ),
       ),

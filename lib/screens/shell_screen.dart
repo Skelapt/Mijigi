@@ -53,11 +53,18 @@ class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
             children: _screens,
           ),
           bottomNavigationBar: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: MijigiColors.surface,
-              border: Border(
+              border: const Border(
                 top: BorderSide(color: MijigiColors.border, width: 0.5),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, -4),
+                ),
+              ],
             ),
             child: SafeArea(
               child: Padding(

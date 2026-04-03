@@ -136,29 +136,34 @@ class _PhotosScreenState extends State<PhotosScreen>
             headerSliverBuilder: (context, _) => [
               const SliverToBoxAdapter(child: SizedBox(height: 48)),
 
-              // Sub-tabs: All | Collections (right at top, no header)
+              // Sub-tabs: All | Collections
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Container(
-                    height: 40,
+                    height: 38,
+                    padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
                       color: MijigiColors.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: MijigiColors.border),
+                      borderRadius: BorderRadius.circular(19),
                     ),
                     child: TabBar(
                       controller: _tabController,
                       indicator: BoxDecoration(
                         color: MijigiColors.primary,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       indicatorSize: TabBarIndicatorSize.tab,
                       dividerColor: Colors.transparent,
                       labelColor: Colors.white,
-                      unselectedLabelColor: MijigiColors.textSecondary,
+                      unselectedLabelColor: MijigiColors.textTertiary,
                       labelStyle: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w600),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2),
+                      unselectedLabelStyle: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500),
                       tabs: const [
                         Tab(text: 'All'),
                         Tab(text: 'Collections'),
@@ -406,22 +411,56 @@ class _PhotosScreenState extends State<PhotosScreen>
   Widget _chip(String label, int count, bool active, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? MijigiColors.primary : MijigiColors.surface,
-          borderRadius: BorderRadius.circular(8),
+          color: active
+              ? MijigiColors.primary
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: active ? MijigiColors.primary : MijigiColors.border,
+            color: active
+                ? MijigiColors.primary
+                : MijigiColors.border,
           ),
         ),
-        child: Text(
-          '$label $count',
-          style: TextStyle(
-            color: active ? Colors.white : MijigiColors.textSecondary,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: active ? Colors.white : MijigiColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.1,
+              ),
+            ),
+            if (count > 0) ...[
+              const SizedBox(width: 5),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: active
+                      ? Colors.white.withValues(alpha: 0.2)
+                      : MijigiColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    color: active
+                        ? Colors.white.withValues(alpha: 0.9)
+                        : MijigiColors.textTertiary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -649,25 +688,33 @@ class _QuickActionPill extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: action.color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(17),
-          border: Border.all(color: action.color.withValues(alpha: 0.25)),
+          color: action.color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(action.icon, size: 13, color: action.color),
-            const SizedBox(width: 5),
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                color: action.color.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(action.icon, size: 11, color: action.color),
+            ),
+            const SizedBox(width: 6),
             ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 160),
+              constraints: const BoxConstraints(maxWidth: 150),
               child: Text(
                 action.displayValue,
                 style: TextStyle(
                   color: action.color,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
+                  letterSpacing: 0.1,
                 ),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,

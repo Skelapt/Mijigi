@@ -88,11 +88,11 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                           onTap: () => _deleteSelected(provider),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
+                                horizontal: 14, vertical: 7),
                             decoration: BoxDecoration(
                               color:
                                   MijigiColors.error.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               'Delete ${_selected.length}',
@@ -113,10 +113,10 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                           }),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
+                                horizontal: 14, vertical: 7),
                             decoration: BoxDecoration(
                               color: MijigiColors.surface,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(20),
                               border:
                                   Border.all(color: MijigiColors.border),
                             ),
@@ -148,25 +148,29 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                         child: GestureDetector(
                           onTap: () => _saveFromClipboard(provider),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
-                              color: MijigiColors.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                  color: MijigiColors.primary.withValues(alpha: 0.3)),
+                              gradient: LinearGradient(
+                                colors: [
+                                  MijigiColors.primary,
+                                  MijigiColors.accent,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(22),
                             ),
                             child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.content_paste_go_rounded,
-                                    color: MijigiColors.primary, size: 18),
+                                    color: Colors.white, size: 17),
                                 SizedBox(width: 8),
                                 Text(
                                   'Paste & Save',
                                   style: TextStyle(
-                                    color: MijigiColors.primary,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.2,
                                   ),
                                 ),
                               ],
@@ -179,10 +183,10 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                         child: GestureDetector(
                           onTap: () => _showManualInput(provider),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
                               color: MijigiColors.surface,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(22),
                               border: Border.all(color: MijigiColors.border),
                             ),
                             child: const Row(
