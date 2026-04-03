@@ -52,16 +52,8 @@ class AppProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
 
+    // Process any unprocessed items in background
     _processUnprocessedItems();
-    _autoImportPhotos();
-  }
-
-  /// Auto-import photos on startup (pro behaviour)
-  Future<void> _autoImportPhotos() async {
-    final hasPermission = await requestPhotoPermission();
-    if (hasPermission) {
-      importDevicePhotos();
-    }
   }
 
   /// Manual check (no-op, auto-capture removed)
