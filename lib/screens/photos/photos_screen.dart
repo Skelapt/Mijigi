@@ -30,6 +30,7 @@ class _PhotosScreenState extends State<PhotosScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -236,13 +237,62 @@ class _PhotosScreenState extends State<PhotosScreen>
     );
   }
 
+  final ScrollController _scrollController = ScrollController();
+  String? _visibleDate;
+  bool _showDateBubble = false;
+
+  String _getDateForIndex(List<CaptureItem> items, int index) {
+    if (index < 0 || index >= items.length) return '';
+    final date = items[index].createdAt;
+    final now = DateTime.now();
+    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+      return 'Today';
+    }
+    final yesterday = now.subtract(const Duration(days: 1));
+    if (date.year == yesterday.year && date.month == yesterday.month && date.day == yesterday.day) {
+      return 'Yesterday';
+    }
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    if (date.year == now.year) {
+      return '${months[date.month - 1]} ${date.day}';
+    }
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
   Widget _buildAllTab(AppProvider provider, int total, int screenshots,
       int videos, int photos) {
     final items = _getFilteredItems(provider);
     final quickActions = _getQuickActions(provider);
 
-    return CustomScrollView(
-      slivers: [
+    return Stack(
+      children: [
+        NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (items.isEmpty) return false;
+            if (notification is ScrollUpdateNotification) {
+              // Calculate which item is visible based on scroll offset
+              // Grid is 3 columns, each row ~(screenWidth/3) height
+              final rowHeight = (MediaQuery.of(context).size.width - 4) / 3;
+              final scrollOffset = _scrollController.offset;
+              // Account for header height (~180px for search + pills + filters)
+              final adjustedOffset = (scrollOffset - 180).clamp(0.0, double.infinity);
+              final visibleRow = (adjustedOffset / (rowHeight + 2)).floor();
+              final visibleIndex = (visibleRow * 3).clamp(0, items.length - 1);
+              final date = _getDateForIndex(items, visibleIndex);
+              if (date != _visibleDate) {
+                setState(() { _visibleDate = date; _showDateBubble = true; });
+              }
+            }
+            if (notification is ScrollEndNotification) {
+              Future.delayed(const Duration(seconds: 1), () {
+                if (mounted) setState(() => _showDateBubble = false);
+              });
+            }
+            return false;
+          },
+          child: CustomScrollView(
+            controller: _scrollController,
+            slivers: [
         // Search
         SliverToBoxAdapter(
           child: Padding(
@@ -345,6 +395,43 @@ class _PhotosScreenState extends State<PhotosScreen>
 
         const SliverToBoxAdapter(child: SizedBox(height: 100)),
       ],
+    ),
+    ),
+    // Date bubble on right side
+    if (_showDateBubble && _visibleDate != null && _visibleDate!.isNotEmpty)
+      Positioned(
+        right: 8,
+        top: 0,
+        bottom: 0,
+        child: Center(
+          child: AnimatedOpacity(
+            opacity: _showDateBubble ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: MijigiColors.primary,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: MijigiColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+              child: Text(
+                _visibleDate!,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ],
     );
   }
 

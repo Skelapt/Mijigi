@@ -228,6 +228,8 @@ class AppProvider extends ChangeNotifier {
 
     for (final item in unprocessed) {
       await _processItem(item);
+      // Yield to UI thread between items so the app stays responsive
+      await Future.delayed(Duration.zero);
     }
 
     _isProcessing = false;
