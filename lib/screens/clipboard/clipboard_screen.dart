@@ -65,7 +65,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
           backgroundColor: MijigiColors.background,
           body: CustomScrollView(
             slivers: [
-              const SliverToBoxAdapter(child: SizedBox(height: 56)),
+              const SliverToBoxAdapter(child: SizedBox(height: 60)),
 
               // Title bar
               SliverToBoxAdapter(
@@ -78,7 +78,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                         style: TextStyle(
                           color: MijigiColors.textPrimary,
                           fontSize: 28,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w300,
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -88,18 +88,22 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                           onTap: () => _deleteSelected(provider),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 7),
+                                horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(
                               color:
-                                  MijigiColors.error.withValues(alpha: 0.12),
+                                  MijigiColors.error.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: MijigiColors.error.withValues(alpha: 0.2),
+                                width: 0.5,
+                              ),
                             ),
                             child: Text(
                               'Delete ${_selected.length}',
                               style: const TextStyle(
                                 color: MijigiColors.error,
                                 fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
@@ -113,19 +117,21 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                           }),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 7),
+                                horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(
-                              color: MijigiColors.surface,
+                              color: MijigiColors.surface.withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(20),
-                              border:
-                                  Border.all(color: MijigiColors.border),
+                              border: Border.all(
+                                color: MijigiColors.border.withValues(alpha: 0.5),
+                                width: 0.5,
+                              ),
                             ),
                             child: Text(
                               _selectMode ? 'Cancel' : 'Select',
                               style: const TextStyle(
                                 color: MijigiColors.textSecondary,
                                 fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
@@ -136,7 +142,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                 ),
               ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
               // Two buttons: paste from clipboard + type manually
               SliverToBoxAdapter(
@@ -148,28 +154,30 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                         child: GestureDetector(
                           onTap: () => _saveFromClipboard(provider),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  MijigiColors.primary,
-                                  MijigiColors.accent,
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(22),
+                              gradient: MijigiGradients.buttonGradient,
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: MijigiColors.primary.withValues(alpha: 0.2),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
                             child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.content_paste_go_rounded,
-                                    color: Colors.white, size: 17),
-                                SizedBox(width: 8),
+                                    color: Colors.white, size: 18),
+                                SizedBox(width: 10),
                                 Text(
                                   'Paste & Save',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
                                     letterSpacing: 0.2,
                                   ),
                                 ),
@@ -178,29 +186,32 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: GestureDetector(
                           onTap: () => _showManualInput(provider),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
-                              color: MijigiColors.surface,
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(color: MijigiColors.border),
+                              gradient: MijigiGradients.cardGradient,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: MijigiColors.border.withValues(alpha: 0.5),
+                                width: 0.5,
+                              ),
                             ),
                             child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.edit_rounded,
                                     color: MijigiColors.textSecondary, size: 18),
-                                SizedBox(width: 8),
+                                SizedBox(width: 10),
                                 Text(
                                   'Type & Save',
                                   style: TextStyle(
                                     color: MijigiColors.textSecondary,
                                     fontSize: 14,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
@@ -213,7 +224,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                 ),
               ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+              const SliverToBoxAdapter(child: SizedBox(height: 28)),
 
               // Clipboard items grouped by date
               if (items.isEmpty)
@@ -223,13 +234,14 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.only(
-                              left: 20, right: 20, bottom: 8, top: 4),
+                              left: 20, right: 20, bottom: 10, top: 6),
                           child: Text(
                             entry.key,
                             style: const TextStyle(
                               color: MijigiColors.textTertiary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ),
@@ -240,9 +252,9 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                            childAspectRatio: 1.8,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                            childAspectRatio: 1.6,
                           ),
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
@@ -279,7 +291,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
                           ),
                         ),
                       ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                      const SliverToBoxAdapter(child: SizedBox(height: 14)),
                     ]),
 
               const SliverToBoxAdapter(child: SizedBox(height: 100)),
@@ -292,23 +304,24 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
 
   Widget _buildEmpty() {
     return Padding(
-      padding: const EdgeInsets.only(top: 60),
+      padding: const EdgeInsets.only(top: 80),
       child: Center(
         child: Column(
           children: [
             Icon(Icons.content_paste_off_rounded,
-                size: 48,
-                color: MijigiColors.textTertiary.withValues(alpha: 0.5)),
-            const SizedBox(height: 12),
+                size: 44,
+                color: MijigiColors.textTertiary.withValues(alpha: 0.4)),
+            const SizedBox(height: 16),
             const Text('No clipboard items',
                 style: TextStyle(
                     color: MijigiColors.textSecondary,
                     fontSize: 16,
-                    fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
+                    fontWeight: FontWeight.w500)),
+            const SizedBox(height: 8),
             const Text(
                 'Copy text anywhere, then tap "Paste & Save"\nor type text manually',
-                style: TextStyle(color: MijigiColors.textTertiary, fontSize: 13),
+                style: TextStyle(color: MijigiColors.textTertiary, fontSize: 13,
+                    fontWeight: FontWeight.w400),
                 textAlign: TextAlign.center),
           ],
         ),
@@ -327,7 +340,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
               content: const Text('Saved!', style: TextStyle(color: Colors.white)),
               backgroundColor: MijigiColors.surfaceLight,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
           );
         }
@@ -345,94 +358,108 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
     final controller = TextEditingController();
     showModalBottomSheet(
       context: context,
-      backgroundColor: MijigiColors.surface,
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 20, right: 20, top: 20,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 36, height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: MijigiColors.textTertiary.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const Text('Save to Clipboard',
-                style: TextStyle(
-                    color: MijigiColors.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700)),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              maxLines: 5,
-              minLines: 3,
-              style: const TextStyle(color: MijigiColors.textPrimary, fontSize: 15),
-              decoration: InputDecoration(
-                hintText: 'Paste or type text here...',
-                hintStyle: const TextStyle(color: MijigiColors.textTertiary),
-                filled: true,
-                fillColor: MijigiColors.surfaceLight,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: MijigiColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: MijigiColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: MijigiColors.primary),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: MijigiColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+      builder: (ctx) => Container(
+        decoration: MijigiGradients.frostedSheet(),
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 20, right: 20, top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36, height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: MijigiColors.textTertiary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                onPressed: () async {
-                  final text = controller.text.trim();
-                  if (text.isNotEmpty) {
-                    await provider.captureClipboard(text);
-                    if (ctx.mounted) Navigator.pop(ctx);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Saved!',
-                              style: TextStyle(color: Colors.white)),
-                          backgroundColor: MijigiColors.surfaceLight,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                        ),
-                      );
-                    }
-                  }
-                },
-                child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w600)),
               ),
-            ),
-          ],
+              const Text('Save to Clipboard',
+                  style: TextStyle(
+                      color: MijigiColors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.3)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                maxLines: 5,
+                minLines: 3,
+                style: const TextStyle(color: MijigiColors.textPrimary, fontSize: 15,
+                    fontWeight: FontWeight.w400),
+                decoration: InputDecoration(
+                  hintText: 'Paste or type text here...',
+                  hintStyle: TextStyle(color: MijigiColors.textTertiary.withValues(alpha: 0.7)),
+                  filled: true,
+                  fillColor: MijigiColors.surfaceLight,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: MijigiColors.border.withValues(alpha: 0.5)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: MijigiColors.border.withValues(alpha: 0.5)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: MijigiColors.primary, width: 0.5),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: MijigiGradients.buttonGradient,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    onPressed: () async {
+                      final text = controller.text.trim();
+                      if (text.isNotEmpty) {
+                        await provider.captureClipboard(text);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('Saved!',
+                                  style: TextStyle(color: Colors.white)),
+                              backgroundColor: MijigiColors.surfaceLight,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14)),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -447,7 +474,7 @@ class _ClipboardScreenState extends State<ClipboardScreen> {
           duration: const Duration(seconds: 1),
           backgroundColor: MijigiColors.surfaceLight,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       );
     }
@@ -484,15 +511,20 @@ class _ClipboardCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
-      child: Container(
-        padding: const EdgeInsets.all(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
+          gradient: isSelected ? null : MijigiGradients.cardGradient,
           color: isSelected
-              ? MijigiColors.primary.withValues(alpha: 0.12)
-              : MijigiColors.surface,
-          borderRadius: BorderRadius.circular(10),
+              ? MijigiColors.primary.withValues(alpha: 0.08)
+              : null,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? MijigiColors.primary : MijigiColors.border,
+            color: isSelected
+                ? MijigiColors.primary.withValues(alpha: 0.3)
+                : MijigiColors.border.withValues(alpha: 0.4),
+            width: 0.5,
           ),
         ),
         child: Column(
@@ -501,22 +533,25 @@ class _ClipboardCard extends StatelessWidget {
             Expanded(
               child: Text(
                 item.rawText ?? '',
-                maxLines: 3,
+                maxLines: 4,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: MijigiColors.textPrimary,
-                  fontSize: 12,
-                  height: 1.4,
+                  fontSize: 13,
+                  height: 1.5,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
+            const SizedBox(height: 6),
             Row(
               children: [
                 Text(
                   _timeAgo(item.createdAt),
-                  style: const TextStyle(
-                    color: MijigiColors.textTertiary,
+                  style: TextStyle(
+                    color: MijigiColors.textTertiary.withValues(alpha: 0.7),
                     fontSize: 10,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
                 const Spacer(),
@@ -527,12 +562,13 @@ class _ClipboardCard extends StatelessWidget {
                         : Icons.circle_outlined,
                     size: 16,
                     color: isSelected
-                        ? MijigiColors.primary
+                        ? MijigiColors.primaryLight
                         : MijigiColors.textTertiary,
                   )
                 else
-                  const Icon(Icons.content_copy_rounded,
-                      size: 12, color: MijigiColors.textTertiary),
+                  Icon(Icons.content_copy_rounded,
+                      size: 12,
+                      color: MijigiColors.textTertiary.withValues(alpha: 0.5)),
               ],
             ),
           ],

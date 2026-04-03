@@ -54,22 +54,22 @@ class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
           ),
           bottomNavigationBar: Container(
             decoration: BoxDecoration(
-              color: MijigiColors.surface,
+              color: const Color(0xFF0A0E14),
               border: const Border(
-                top: BorderSide(color: MijigiColors.border, width: 0.5),
+                top: BorderSide(color: Color(0xFF1A1F28), width: 0.5),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, -4),
+                  color: Colors.black.withValues(alpha: 0.5),
+                  blurRadius: 24,
+                  offset: const Offset(0, -6),
                 ),
               ],
             ),
             child: SafeArea(
               child: Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -127,37 +127,39 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 64,
+        width: 72,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
               padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
               decoration: BoxDecoration(
                 color: isActive
-                    ? MijigiColors.primary.withValues(alpha: 0.12)
+                    ? MijigiColors.primary.withValues(alpha: 0.10)
                     : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 icon,
                 size: 22,
                 color: isActive
-                    ? MijigiColors.primary
+                    ? MijigiColors.primaryLight
                     : MijigiColors.textTertiary,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 5),
             Text(
               label,
               style: TextStyle(
                 color: isActive
-                    ? MijigiColors.primary
+                    ? MijigiColors.primaryLight
                     : MijigiColors.textTertiary,
                 fontSize: 10,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                letterSpacing: 0.2,
               ),
             ),
           ],

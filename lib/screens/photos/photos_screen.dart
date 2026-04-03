@@ -137,34 +137,32 @@ class _PhotosScreenState extends State<PhotosScreen>
             headerSliverBuilder: (context, _) => [
               const SliverToBoxAdapter(child: SizedBox(height: 48)),
 
-              // Sub-tabs: All | Collections
+              // Sub-tabs: All | Collections  --  subtle underline style
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Container(
-                    height: 38,
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      color: MijigiColors.surface,
-                      borderRadius: BorderRadius.circular(19),
-                    ),
+                  child: SizedBox(
+                    height: 40,
                     child: TabBar(
                       controller: _tabController,
-                      indicator: BoxDecoration(
-                        color: MijigiColors.primary,
-                        borderRadius: BorderRadius.circular(16),
+                      indicator: const UnderlineTabIndicator(
+                        borderSide: BorderSide(
+                          color: MijigiColors.primary,
+                          width: 2.0,
+                        ),
+                        insets: EdgeInsets.symmetric(horizontal: 16),
                       ),
-                      indicatorSize: TabBarIndicatorSize.tab,
+                      indicatorSize: TabBarIndicatorSize.label,
                       dividerColor: Colors.transparent,
-                      labelColor: Colors.white,
+                      labelColor: MijigiColors.textPrimary,
                       unselectedLabelColor: MijigiColors.textTertiary,
                       labelStyle: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.2),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.1),
                       unselectedLabelStyle: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400),
                       tabs: const [
                         Tab(text: 'All'),
                         Tab(text: 'Collections'),
@@ -174,7 +172,7 @@ class _PhotosScreenState extends State<PhotosScreen>
                 ),
               ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
 
               // Import progress
               if (provider.isImporting && provider.importProgress != null)
@@ -182,14 +180,19 @@ class _PhotosScreenState extends State<PhotosScreen>
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Container(
-                      padding: const EdgeInsets.all(10),
-                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 10),
                       decoration: BoxDecoration(
-                        color: MijigiColors.primary.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(10),
+                        gradient: LinearGradient(
+                          colors: [
+                            MijigiColors.primary.withValues(alpha: 0.06),
+                            MijigiColors.primary.withValues(alpha: 0.02),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                             color:
-                                MijigiColors.primary.withValues(alpha: 0.15)),
+                                MijigiColors.primary.withValues(alpha: 0.12)),
                       ),
                       child: Row(
                         children: [
@@ -197,17 +200,18 @@ class _PhotosScreenState extends State<PhotosScreen>
                             width: 14,
                             height: 14,
                             child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: MijigiColors.primary,
+                              strokeWidth: 1.5,
+                              color: MijigiColors.primaryLight,
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               'Syncing ${provider.importProgress!.processed}/${provider.importProgress!.total}',
                               style: const TextStyle(
                                   color: MijigiColors.textSecondary,
-                                  fontSize: 12),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w400),
                             ),
                           ),
                         ],
@@ -227,10 +231,24 @@ class _PhotosScreenState extends State<PhotosScreen>
               ],
             ),
           ),
-          floatingActionButton: FloatingActionButton(
-            backgroundColor: MijigiColors.primary,
-            onPressed: () => _showCaptureOptions(context, provider),
-            child: const Icon(Icons.add_rounded, color: Colors.white),
+          floatingActionButton: Container(
+            decoration: BoxDecoration(
+              gradient: MijigiGradients.buttonGradient,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: MijigiColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: FloatingActionButton(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              onPressed: () => _showCaptureOptions(context, provider),
+              child: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
+            ),
           ),
         );
       },
@@ -276,7 +294,7 @@ class _PhotosScreenState extends State<PhotosScreen>
               final scrollOffset = _scrollController.offset;
               // Account for header height (~180px for search + pills + filters)
               final adjustedOffset = (scrollOffset - 180).clamp(0.0, double.infinity);
-              final visibleRow = (adjustedOffset / (rowHeight + 2)).floor();
+              final visibleRow = (adjustedOffset / (rowHeight + 1)).floor();
               final visibleIndex = (visibleRow * 3).clamp(0, items.length - 1);
               final date = _getDateForIndex(items, visibleIndex);
               if (date != _visibleDate) {
@@ -304,7 +322,7 @@ class _PhotosScreenState extends State<PhotosScreen>
           ),
         ),
 
-        const SliverToBoxAdapter(child: SizedBox(height: 10)),
+        const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
         // Quick actions row
         if (quickActions.isNotEmpty)
@@ -315,7 +333,7 @@ class _PhotosScreenState extends State<PhotosScreen>
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 itemCount: quickActions.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final action = quickActions[index];
                   return _QuickActionPill(
@@ -327,7 +345,7 @@ class _PhotosScreenState extends State<PhotosScreen>
                         SnackBar(
                           content: Text('Copied: ${action.value}'),
                           duration: const Duration(seconds: 1),
-                          backgroundColor: MijigiColors.surface,
+                          backgroundColor: MijigiColors.surfaceLight,
                         ),
                       );
                     },
@@ -338,7 +356,7 @@ class _PhotosScreenState extends State<PhotosScreen>
           ),
 
         if (quickActions.isNotEmpty)
-          const SliverToBoxAdapter(child: SizedBox(height: 10)),
+          const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
         // Filters
         SliverToBoxAdapter(
@@ -350,13 +368,13 @@ class _PhotosScreenState extends State<PhotosScreen>
               children: [
                 _chip('All', total, _filter == 'all',
                     () => setState(() => _filter = 'all')),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 _chip('Screenshots', screenshots, _filter == 'screenshots',
                     () => setState(() => _filter = 'screenshots')),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 _chip('Videos', videos, _filter == 'videos',
                     () => setState(() => _filter = 'videos')),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 _chip('Things', photos, _filter == 'things',
                     () => setState(() => _filter = 'things')),
               ],
@@ -364,19 +382,19 @@ class _PhotosScreenState extends State<PhotosScreen>
           ),
         ),
 
-        const SliverToBoxAdapter(child: SizedBox(height: 10)),
+        const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
         // Grid
         if (items.isEmpty)
           SliverToBoxAdapter(child: _buildEmpty())
         else
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 1),
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
-                crossAxisSpacing: 2,
-                mainAxisSpacing: 2,
+                crossAxisSpacing: 1,
+                mainAxisSpacing: 1,
                 childAspectRatio: 1.0,
               ),
               delegate: SliverChildBuilderDelegate(
@@ -408,14 +426,14 @@ class _PhotosScreenState extends State<PhotosScreen>
             opacity: _showDateBubble ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 200),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
-                color: MijigiColors.primary,
-                borderRadius: BorderRadius.circular(14),
+                gradient: MijigiGradients.buttonGradient,
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: MijigiColors.primary.withValues(alpha: 0.3),
-                    blurRadius: 8,
+                    color: MijigiColors.primary.withValues(alpha: 0.25),
+                    blurRadius: 10,
                   ),
                 ],
               ),
@@ -424,7 +442,8 @@ class _PhotosScreenState extends State<PhotosScreen>
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
                 ),
               ),
             ),
@@ -440,29 +459,30 @@ class _PhotosScreenState extends State<PhotosScreen>
 
     return CustomScrollView(
       slivers: [
-        const SliverToBoxAdapter(child: SizedBox(height: 8)),
+        const SliverToBoxAdapter(child: SizedBox(height: 12)),
         if (collections.isEmpty)
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.only(top: 60),
+              padding: const EdgeInsets.only(top: 80),
               child: Center(
                 child: Column(
                   children: [
                     Icon(Icons.collections_bookmark_rounded,
-                        size: 48,
+                        size: 44,
                         color: MijigiColors.textTertiary
-                            .withValues(alpha: 0.5)),
-                    const SizedBox(height: 12),
+                            .withValues(alpha: 0.4)),
+                    const SizedBox(height: 16),
                     const Text('No collections yet',
                         style: TextStyle(
                             color: MijigiColors.textSecondary,
                             fontSize: 16,
-                            fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 6),
+                            fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 8),
                     const Text(
                         'Collections auto-create as Mijigi scans your photos',
                         style: TextStyle(
-                            color: MijigiColors.textTertiary, fontSize: 13)),
+                            color: MijigiColors.textTertiary, fontSize: 13,
+                            fontWeight: FontWeight.w400)),
                   ],
                 ),
               ),
@@ -474,8 +494,8 @@ class _PhotosScreenState extends State<PhotosScreen>
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
                 childAspectRatio: 1.0,
               ),
               delegate: SliverChildBuilderDelegate(
@@ -504,13 +524,14 @@ class _PhotosScreenState extends State<PhotosScreen>
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: active
-              ? MijigiColors.primary
+              ? MijigiColors.primary.withValues(alpha: 0.12)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: active
-                ? MijigiColors.primary
-                : MijigiColors.border,
+                ? MijigiColors.primary.withValues(alpha: 0.4)
+                : MijigiColors.border.withValues(alpha: 0.6),
+            width: 0.5,
           ),
         ),
         child: Row(
@@ -519,31 +540,22 @@ class _PhotosScreenState extends State<PhotosScreen>
             Text(
               label,
               style: TextStyle(
-                color: active ? Colors.white : MijigiColors.textSecondary,
+                color: active ? MijigiColors.primaryLight : MijigiColors.textSecondary,
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
                 letterSpacing: 0.1,
               ),
             ),
             if (count > 0) ...[
-              const SizedBox(width: 5),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: BoxDecoration(
+              const SizedBox(width: 6),
+              Text(
+                '$count',
+                style: TextStyle(
                   color: active
-                      ? Colors.white.withValues(alpha: 0.2)
-                      : MijigiColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '$count',
-                  style: TextStyle(
-                    color: active
-                        ? Colors.white.withValues(alpha: 0.9)
-                        : MijigiColors.textTertiary,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                  ),
+                      ? MijigiColors.primary.withValues(alpha: 0.7)
+                      : MijigiColors.textTertiary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -555,19 +567,19 @@ class _PhotosScreenState extends State<PhotosScreen>
 
   Widget _buildEmpty() {
     return Padding(
-      padding: const EdgeInsets.only(top: 60),
+      padding: const EdgeInsets.only(top: 80),
       child: Center(
         child: Column(
           children: [
             Icon(Icons.photo_library_outlined,
-                size: 48,
-                color: MijigiColors.textTertiary.withValues(alpha: 0.5)),
-            const SizedBox(height: 12),
+                size: 44,
+                color: MijigiColors.textTertiary.withValues(alpha: 0.4)),
+            const SizedBox(height: 16),
             const Text('No photos yet',
                 style: TextStyle(
                     color: MijigiColors.textSecondary,
                     fontSize: 16,
-                    fontWeight: FontWeight.w600)),
+                    fontWeight: FontWeight.w500)),
           ],
         ),
       ),
@@ -577,70 +589,77 @@ class _PhotosScreenState extends State<PhotosScreen>
   void _showCaptureOptions(BuildContext context, AppProvider provider) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: MijigiColors.surface,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: MijigiColors.textTertiary.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
+      builder: (ctx) => Container(
+        decoration: MijigiGradients.frostedSheet(),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: MijigiColors.textTertiary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt_rounded,
-                    color: MijigiColors.primary),
-                title: const Text('Take Photo',
-                    style: TextStyle(color: MijigiColors.textPrimary)),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  final item = await provider.captureFromCamera();
-                  if (item != null && mounted) _openItem(item);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.videocam_rounded,
-                    color: MijigiColors.primaryLight),
-                title: const Text('Record Video',
-                    style: TextStyle(color: MijigiColors.textPrimary)),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  final item = await provider.captureVideoFromCamera();
-                  if (item != null && mounted) _openItem(item);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library_rounded,
-                    color: MijigiColors.accent),
-                title: const Text('Choose from Gallery',
-                    style: TextStyle(color: MijigiColors.textPrimary)),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  final item = await provider.captureFromGallery();
-                  if (item != null && mounted) _openItem(item);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.sync_rounded,
-                    color: MijigiColors.textSecondary),
-                title: const Text('Sync Device Photos',
-                    style: TextStyle(color: MijigiColors.textPrimary)),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  final ok = await provider.requestPhotoPermission();
-                  if (ok) provider.importDevicePhotos();
-                },
-              ),
-            ],
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_rounded,
+                      color: MijigiColors.primaryLight),
+                  title: const Text('Take Photo',
+                      style: TextStyle(color: MijigiColors.textPrimary,
+                          fontWeight: FontWeight.w400)),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    final item = await provider.captureFromCamera();
+                    if (item != null && mounted) _openItem(item);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.videocam_rounded,
+                      color: MijigiColors.primaryLight),
+                  title: const Text('Record Video',
+                      style: TextStyle(color: MijigiColors.textPrimary,
+                          fontWeight: FontWeight.w400)),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    final item = await provider.captureVideoFromCamera();
+                    if (item != null && mounted) _openItem(item);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_rounded,
+                      color: MijigiColors.accent),
+                  title: const Text('Choose from Gallery',
+                      style: TextStyle(color: MijigiColors.textPrimary,
+                          fontWeight: FontWeight.w400)),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    final item = await provider.captureFromGallery();
+                    if (item != null && mounted) _openItem(item);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.sync_rounded,
+                      color: MijigiColors.textSecondary),
+                  title: const Text('Sync Device Photos',
+                      style: TextStyle(color: MijigiColors.textPrimary,
+                          fontWeight: FontWeight.w400)),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    final ok = await provider.requestPhotoPermission();
+                    if (ok) provider.importDevicePhotos();
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -667,51 +686,56 @@ class _PhotosScreenState extends State<PhotosScreen>
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
       context: context,
-      backgroundColor: MijigiColors.surface,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: MijigiColors.textTertiary.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
+      builder: (ctx) => Container(
+        decoration: MijigiGradients.frostedSheet(),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: MijigiColors.textTertiary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              ListTile(
-                leading: Icon(
-                  item.isPinned
-                      ? Icons.push_pin_outlined
-                      : Icons.push_pin_rounded,
-                  color: MijigiColors.primary,
+                ListTile(
+                  leading: Icon(
+                    item.isPinned
+                        ? Icons.push_pin_outlined
+                        : Icons.push_pin_rounded,
+                    color: MijigiColors.primaryLight,
+                  ),
+                  title: Text(item.isPinned ? 'Unpin' : 'Pin',
+                      style:
+                          const TextStyle(color: MijigiColors.textPrimary,
+                              fontWeight: FontWeight.w400)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    provider.togglePin(item.id);
+                  },
                 ),
-                title: Text(item.isPinned ? 'Unpin' : 'Pin',
-                    style:
-                        const TextStyle(color: MijigiColors.textPrimary)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  provider.togglePin(item.id);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete_rounded,
-                    color: MijigiColors.error),
-                title: const Text('Delete',
-                    style: TextStyle(color: MijigiColors.error)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  provider.deleteItem(item.id);
-                },
-              ),
-            ],
+                ListTile(
+                  leading: const Icon(Icons.delete_rounded,
+                      color: MijigiColors.error),
+                  title: const Text('Delete',
+                      style: TextStyle(color: MijigiColors.error,
+                          fontWeight: FontWeight.w400)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    provider.deleteItem(item.id);
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -777,30 +801,26 @@ class _QuickActionPill extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: action.color.withValues(alpha: 0.08),
+          color: action.color.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: action.color.withValues(alpha: 0.12),
+            width: 0.5,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: action.color.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(action.icon, size: 11, color: action.color),
-            ),
+            Icon(action.icon, size: 13, color: action.color.withValues(alpha: 0.8)),
             const SizedBox(width: 6),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 150),
               child: Text(
                 action.displayValue,
                 style: TextStyle(
-                  color: action.color,
+                  color: action.color.withValues(alpha: 0.9),
                   fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                   letterSpacing: 0.1,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -880,14 +900,14 @@ class _MediaTile extends StatelessWidget {
               right: 0,
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withValues(alpha: 0.75),
+                      Colors.black.withValues(alpha: 0.8),
                     ],
                   ),
                 ),
@@ -896,7 +916,7 @@ class _MediaTile extends StatelessWidget {
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 8,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w400,
                     height: 1.2,
                   ),
                   maxLines: 1,
@@ -908,11 +928,15 @@ class _MediaTile extends StatelessWidget {
           if (item.type == CaptureType.video)
             Center(
               child: Container(
-                width: 32,
-                height: 32,
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
+                  color: Colors.black.withValues(alpha: 0.45),
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    width: 0.5,
+                  ),
                 ),
                 child: const Icon(Icons.play_arrow_rounded,
                     color: Colors.white, size: 20),
@@ -927,8 +951,8 @@ class _MediaTile extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(4),
+                  color: Colors.black.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Icon(Icons.screenshot_rounded,
                     size: 10, color: Colors.white70),
@@ -944,7 +968,7 @@ class _MediaTile extends StatelessWidget {
                 height: 10,
                 child: CircularProgressIndicator(
                   strokeWidth: 1.5,
-                  color: MijigiColors.primary,
+                  color: MijigiColors.primaryLight,
                 ),
               ),
             ),
@@ -954,13 +978,13 @@ class _MediaTile extends StatelessWidget {
               top: 4,
               left: 4,
               child: Container(
-                padding: const EdgeInsets.all(2),
+                padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(4),
+                  color: Colors.black.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Icon(Icons.push_pin_rounded,
-                    size: 10, color: MijigiColors.primary),
+                    size: 10, color: MijigiColors.primaryLight),
               ),
             ),
         ],
@@ -982,9 +1006,9 @@ class _CollectionCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: MijigiColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: MijigiColors.border),
+          gradient: MijigiGradients.cardGradient,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: MijigiColors.border.withValues(alpha: 0.5)),
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
@@ -996,16 +1020,16 @@ class _CollectionCard extends StatelessWidget {
                 File(collection.coverPath!),
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
-                  color: collection.color.withValues(alpha: 0.08),
+                  color: collection.color.withValues(alpha: 0.06),
                   child: Icon(collection.icon,
-                      color: collection.color, size: 36),
+                      color: collection.color.withValues(alpha: 0.7), size: 36),
                 ),
               )
             else
               Container(
-                color: collection.color.withValues(alpha: 0.08),
+                color: collection.color.withValues(alpha: 0.06),
                 child: Icon(collection.icon,
-                    color: collection.color, size: 36),
+                    color: collection.color.withValues(alpha: 0.7), size: 36),
               ),
             // Gradient overlay
             Positioned(
@@ -1014,14 +1038,14 @@ class _CollectionCard extends StatelessWidget {
               right: 0,
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withValues(alpha: 0.7),
+                      Colors.black.withValues(alpha: 0.8),
                     ],
                   ),
                 ),
@@ -1033,14 +1057,17 @@ class _CollectionCard extends StatelessWidget {
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       '${collection.count} items',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
+                        color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 11,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
@@ -1081,14 +1108,15 @@ class _CollectionDetailScreen extends StatelessWidget {
           body: items.isEmpty
               ? const Center(
                   child: Text('No items',
-                      style: TextStyle(color: MijigiColors.textTertiary)))
+                      style: TextStyle(color: MijigiColors.textTertiary,
+                          fontWeight: FontWeight.w400)))
               : GridView.builder(
-                  padding: const EdgeInsets.all(2),
+                  padding: const EdgeInsets.all(1),
                   gridDelegate:
                       const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
-                    crossAxisSpacing: 2,
-                    mainAxisSpacing: 2,
+                    crossAxisSpacing: 1,
+                    mainAxisSpacing: 1,
                   ),
                   itemCount: items.length,
                   itemBuilder: (context, index) {

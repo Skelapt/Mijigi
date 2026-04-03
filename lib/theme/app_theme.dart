@@ -37,6 +37,62 @@ class MijigiColors {
   static const categoryShopping = Color(0xFFD946EF);
 }
 
+/// Reusable gradient helpers for premium card backgrounds.
+class MijigiGradients {
+  /// Subtle dark card gradient (top-left to bottom-right).
+  static const cardGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF111820),
+      Color(0xFF0A0F16),
+    ],
+  );
+
+  /// Slightly elevated card gradient for hover / active states.
+  static const cardElevatedGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF161D28),
+      Color(0xFF0D1219),
+    ],
+  );
+
+  /// Hero gradient for primary CTAs and scanner cards.
+  static const heroGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF1A3158),
+      Color(0xFF0D192E),
+      Color(0xFF081220),
+    ],
+  );
+
+  /// Frosted glass effect decoration for bottom sheets.
+  static BoxDecoration frostedSheet({double opacity = 0.92}) {
+    return BoxDecoration(
+      color: MijigiColors.surface.withValues(alpha: opacity),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      border: const Border(
+        top: BorderSide(color: Color(0xFF1E2530), width: 0.5),
+      ),
+    );
+  }
+
+  /// Primary button gradient.
+  static const buttonGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF4A90F7),
+      Color(0xFF2563EB),
+      Color(0xFF1D4FCC),
+    ],
+  );
+}
+
 class AppTheme {
   static ThemeData get dark {
     final base = ThemeData.dark();
@@ -54,8 +110,9 @@ class AppTheme {
         scrolledUnderElevation: 0,
         titleTextStyle: GoogleFonts.inter(
           fontSize: 18,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w500,
           color: MijigiColors.textPrimary,
+          letterSpacing: -0.3,
         ),
         iconTheme: const IconThemeData(color: MijigiColors.textPrimary),
       ),
@@ -63,15 +120,15 @@ class AppTheme {
         filled: true,
         fillColor: MijigiColors.surface,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: MijigiColors.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: MijigiColors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide:
               const BorderSide(color: MijigiColors.primary, width: 1.5),
         ),
@@ -80,7 +137,7 @@ class AppTheme {
           fontSize: 14,
         ),
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
         bodyColor: MijigiColors.textPrimary,
@@ -89,16 +146,19 @@ class AppTheme {
       dividerColor: MijigiColors.border,
       dialogTheme: DialogThemeData(
         backgroundColor: MijigiColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: MijigiColors.surface,
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: MijigiColors.surface.withValues(alpha: 0.92),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: MijigiColors.surfaceLight,
         contentTextStyle: GoogleFonts.inter(color: Colors.white, fontSize: 14),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
   }

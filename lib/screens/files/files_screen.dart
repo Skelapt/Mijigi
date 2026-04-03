@@ -87,7 +87,7 @@ class _FilesScreenState extends State<FilesScreen> {
           backgroundColor: MijigiColors.background,
           body: CustomScrollView(
             slivers: [
-              const SliverToBoxAdapter(child: SizedBox(height: 56)),
+              const SliverToBoxAdapter(child: SizedBox(height: 60)),
 
               // Header
               SliverToBoxAdapter(
@@ -98,14 +98,14 @@ class _FilesScreenState extends State<FilesScreen> {
                     style: TextStyle(
                       color: MijigiColors.textPrimary,
                       fontSize: 28,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w300,
                       letterSpacing: -0.5,
                     ),
                   ),
                 ),
               ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
               // Scanner hero card
               SliverToBoxAdapter(
@@ -114,37 +114,46 @@ class _FilesScreenState extends State<FilesScreen> {
                   child: GestureDetector(
                     onTap: () => _scanDocument(context, provider),
                     child: Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(22),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            Color(0xFF1E3A5F),
-                            Color(0xFF0F1B2D),
+                            Color(0xFF1A3A62),
+                            Color(0xFF132844),
+                            Color(0xFF0A1A30),
                           ],
                         ),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: MijigiColors.primary.withValues(alpha: 0.2),
+                          color: MijigiColors.primary.withValues(alpha: 0.15),
+                          width: 0.5,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: MijigiColors.primary.withValues(alpha: 0.08),
+                            blurRadius: 20,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                       ),
                       child: Row(
                         children: [
                           Container(
-                            width: 56,
-                            height: 56,
+                            width: 52,
+                            height: 52,
                             decoration: BoxDecoration(
-                              color: MijigiColors.primary.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(14),
+                              color: MijigiColors.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             child: const Icon(
                               Icons.document_scanner_rounded,
                               color: MijigiColors.primaryLight,
-                              size: 28,
+                              size: 26,
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 18),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,16 +162,19 @@ class _FilesScreenState extends State<FilesScreen> {
                                   'Scan Document',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: -0.2,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 5),
                                 Text(
-                                  'Multi-page • Filters • Rotate • Export PDF',
+                                  'Multi-page  /  Filters  /  Rotate  /  Export PDF',
                                   style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.6),
+                                    color: Colors.white.withValues(alpha: 0.45),
                                     fontSize: 12,
+                                    fontWeight: FontWeight.w400,
+                                    letterSpacing: 0.2,
                                   ),
                                 ),
                               ],
@@ -170,8 +182,8 @@ class _FilesScreenState extends State<FilesScreen> {
                           ),
                           Icon(
                             Icons.arrow_forward_ios_rounded,
-                            color: Colors.white.withValues(alpha: 0.4),
-                            size: 16,
+                            color: Colors.white.withValues(alpha: 0.3),
+                            size: 14,
                           ),
                         ],
                       ),
@@ -180,7 +192,7 @@ class _FilesScreenState extends State<FilesScreen> {
                 ),
               ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: SizedBox(height: 18)),
 
               // Quick actions row
               SliverToBoxAdapter(
@@ -194,7 +206,7 @@ class _FilesScreenState extends State<FilesScreen> {
                         color: MijigiColors.fileNote,
                         onTap: () => _createNote(provider),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       _QuickAction(
                         icon: Icons.radar_rounded,
                         label: 'Scan Device',
@@ -210,18 +222,19 @@ class _FilesScreenState extends State<FilesScreen> {
               if (_isScanning)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.only(left: 20, right: 20, top: 10),
+                    padding: const EdgeInsets.only(left: 20, right: 20, top: 12),
                     child: Text(
                       _scanStatus,
-                      style: const TextStyle(
-                        color: MijigiColors.textTertiary,
+                      style: TextStyle(
+                        color: MijigiColors.textTertiary.withValues(alpha: 0.7),
                         fontSize: 12,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
                 ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: SizedBox(height: 18)),
 
               // Search
               SliverToBoxAdapter(
@@ -233,7 +246,7 @@ class _FilesScreenState extends State<FilesScreen> {
                   ),
                 ),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
 
               // Filter chips
               SliverToBoxAdapter(
@@ -246,23 +259,23 @@ class _FilesScreenState extends State<FilesScreen> {
                       _chip('All', allFiles.length, _selectedFilter == 'all',
                           () => setState(() => _selectedFilter = 'all')),
                       if (pdfCount > 0) ...[
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         _chip('PDF', pdfCount, _selectedFilter == 'pdf',
                             () => setState(() => _selectedFilter = 'pdf')),
                       ],
                       if (docCount > 0) ...[
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         _chip('Documents', docCount, _selectedFilter == 'docs',
                             () => setState(() => _selectedFilter = 'docs')),
                       ],
                       if (spreadsheetCount > 0) ...[
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         _chip('Spreadsheets', spreadsheetCount,
                             _selectedFilter == 'spreadsheets',
                             () => setState(() => _selectedFilter = 'spreadsheets')),
                       ],
                       if (noteCount > 0) ...[
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         _chip('Notes', noteCount, _selectedFilter == 'notes',
                             () => setState(() => _selectedFilter = 'notes')),
                       ],
@@ -270,7 +283,7 @@ class _FilesScreenState extends State<FilesScreen> {
                   ),
                 ),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
 
               // File list
               if (fileItems.isEmpty)
@@ -282,7 +295,7 @@ class _FilesScreenState extends State<FilesScreen> {
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.only(bottom: 10),
                           child: _FileCard(
                             item: fileItems[index],
                             onTap: () => _openItem(fileItems[index]),
@@ -311,10 +324,15 @@ class _FilesScreenState extends State<FilesScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? MijigiColors.primary : Colors.transparent,
+          color: active
+              ? MijigiColors.primary.withValues(alpha: 0.12)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: active ? MijigiColors.primary : MijigiColors.border,
+            color: active
+                ? MijigiColors.primary.withValues(alpha: 0.4)
+                : MijigiColors.border.withValues(alpha: 0.6),
+            width: 0.5,
           ),
         ),
         child: Row(
@@ -323,30 +341,21 @@ class _FilesScreenState extends State<FilesScreen> {
             Text(
               label,
               style: TextStyle(
-                color: active ? Colors.white : MijigiColors.textSecondary,
+                color: active ? MijigiColors.primaryLight : MijigiColors.textSecondary,
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
             if (count > 0) ...[
-              const SizedBox(width: 5),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: BoxDecoration(
+              const SizedBox(width: 6),
+              Text(
+                '$count',
+                style: TextStyle(
                   color: active
-                      ? Colors.white.withValues(alpha: 0.2)
-                      : MijigiColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '$count',
-                  style: TextStyle(
-                    color: active
-                        ? Colors.white.withValues(alpha: 0.9)
-                        : MijigiColors.textTertiary,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                  ),
+                      ? MijigiColors.primary.withValues(alpha: 0.7)
+                      : MijigiColors.textTertiary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -358,23 +367,24 @@ class _FilesScreenState extends State<FilesScreen> {
 
   Widget _buildEmpty() {
     return Padding(
-      padding: const EdgeInsets.only(top: 40),
+      padding: const EdgeInsets.only(top: 50),
       child: Center(
         child: Column(
           children: [
             Icon(Icons.folder_open_rounded,
-                size: 48,
-                color: MijigiColors.textTertiary.withValues(alpha: 0.5)),
-            const SizedBox(height: 12),
+                size: 44,
+                color: MijigiColors.textTertiary.withValues(alpha: 0.4)),
+            const SizedBox(height: 16),
             const Text('No documents yet',
                 style: TextStyle(
                     color: MijigiColors.textSecondary,
                     fontSize: 16,
-                    fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
+                    fontWeight: FontWeight.w500)),
+            const SizedBox(height: 8),
             const Text('Scan a document or create a note',
                 style:
-                    TextStyle(color: MijigiColors.textTertiary, fontSize: 13)),
+                    TextStyle(color: MijigiColors.textTertiary, fontSize: 13,
+                        fontWeight: FontWeight.w400)),
           ],
         ),
       ),
@@ -405,78 +415,89 @@ class _FilesScreenState extends State<FilesScreen> {
     final titleController = TextEditingController();
     showModalBottomSheet(
       context: context,
-      backgroundColor: MijigiColors.surface,
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 20, right: 20, top: 20,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36, height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: MijigiColors.textTertiary.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            TextField(
-              controller: titleController,
-              style: const TextStyle(
-                  color: MijigiColors.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600),
-              decoration: const InputDecoration(
-                hintText: 'Title',
-                hintStyle: TextStyle(color: MijigiColors.textTertiary),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              maxLines: 6,
-              minLines: 3,
-              style: const TextStyle(
-                  color: MijigiColors.textPrimary, fontSize: 14),
-              decoration: const InputDecoration(
-                hintText: 'Write your note...',
-                hintStyle: TextStyle(color: MijigiColors.textTertiary),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: MijigiColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+      builder: (ctx) => Container(
+        decoration: MijigiGradients.frostedSheet(),
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 20, right: 20, top: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36, height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: MijigiColors.textTertiary.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                onPressed: () async {
-                  if (controller.text.trim().isNotEmpty) {
-                    await provider.captureNote(
-                      controller.text.trim(),
-                      title: titleController.text.trim().isEmpty
-                          ? null
-                          : titleController.text.trim(),
-                    );
-                    if (ctx.mounted) Navigator.pop(ctx);
-                  }
-                },
-                child: const Text('Save Note',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
               ),
-            ),
-          ],
+              TextField(
+                controller: titleController,
+                style: const TextStyle(
+                    color: MijigiColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500),
+                decoration: const InputDecoration(
+                  hintText: 'Title',
+                  hintStyle: TextStyle(color: MijigiColors.textTertiary),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                maxLines: 6,
+                minLines: 3,
+                style: const TextStyle(
+                    color: MijigiColors.textPrimary, fontSize: 14,
+                    fontWeight: FontWeight.w400),
+                decoration: const InputDecoration(
+                  hintText: 'Write your note...',
+                  hintStyle: TextStyle(color: MijigiColors.textTertiary),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: MijigiGradients.buttonGradient,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                    ),
+                    onPressed: () async {
+                      if (controller.text.trim().isNotEmpty) {
+                        await provider.captureNote(
+                          controller.text.trim(),
+                          title: titleController.text.trim().isEmpty
+                              ? null
+                              : titleController.text.trim(),
+                        );
+                        if (ctx.mounted) Navigator.pop(ctx);
+                      }
+                    },
+                    child: const Text('Save Note',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -494,7 +515,7 @@ class _FilesScreenState extends State<FilesScreen> {
             backgroundColor: MijigiColors.surfaceLight,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(14)),
           ),
         );
       }
@@ -541,50 +562,55 @@ class _FilesScreenState extends State<FilesScreen> {
   void _showActions(AppProvider provider, CaptureItem item) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: MijigiColors.surface,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 36, height: 4,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: MijigiColors.textTertiary.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
+      builder: (ctx) => Container(
+        decoration: MijigiGradients.frostedSheet(),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36, height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: MijigiColors.textTertiary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              ListTile(
-                leading: Icon(
-                  item.isPinned
-                      ? Icons.push_pin_outlined
-                      : Icons.push_pin_rounded,
-                  color: MijigiColors.primary,
+                ListTile(
+                  leading: Icon(
+                    item.isPinned
+                        ? Icons.push_pin_outlined
+                        : Icons.push_pin_rounded,
+                    color: MijigiColors.primaryLight,
+                  ),
+                  title: Text(item.isPinned ? 'Unpin' : 'Pin',
+                      style:
+                          const TextStyle(color: MijigiColors.textPrimary,
+                              fontWeight: FontWeight.w400)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    provider.togglePin(item.id);
+                  },
                 ),
-                title: Text(item.isPinned ? 'Unpin' : 'Pin',
-                    style:
-                        const TextStyle(color: MijigiColors.textPrimary)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  provider.togglePin(item.id);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete_rounded,
-                    color: MijigiColors.error),
-                title: const Text('Delete',
-                    style: TextStyle(color: MijigiColors.error)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  provider.deleteItem(item.id);
-                },
-              ),
-            ],
+                ListTile(
+                  leading: const Icon(Icons.delete_rounded,
+                      color: MijigiColors.error),
+                  title: const Text('Delete',
+                      style: TextStyle(color: MijigiColors.error,
+                          fontWeight: FontWeight.w400)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    provider.deleteItem(item.id);
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -614,11 +640,14 @@ class _QuickAction extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withValues(alpha: 0.15)),
+            gradient: MijigiGradients.cardGradient,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: color.withValues(alpha: 0.12),
+              width: 0.5,
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -627,17 +656,17 @@ class _QuickAction extends StatelessWidget {
                 SizedBox(
                   width: 16, height: 16,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: color),
+                      strokeWidth: 1.5, color: color),
                 )
               else
-                Icon(icon, color: color, size: 18),
-              const SizedBox(width: 8),
+                Icon(icon, color: color.withValues(alpha: 0.8), size: 18),
+              const SizedBox(width: 10),
               Text(
                 label,
                 style: TextStyle(
-                  color: color,
+                  color: color.withValues(alpha: 0.9),
                   fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -648,7 +677,7 @@ class _QuickAction extends StatelessWidget {
   }
 }
 
-// --- File card ---
+// --- File card with left color accent stripe ---
 class _FileCard extends StatelessWidget {
   final CaptureItem item;
   final VoidCallback onTap;
@@ -663,53 +692,81 @@ class _FileCard extends StatelessWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       child: Container(
-        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: MijigiColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: MijigiColors.border),
+          gradient: MijigiGradients.cardGradient,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: MijigiColors.border.withValues(alpha: 0.4),
+            width: 0.5,
+          ),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: _iconColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(_icon, color: _iconColor, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.displayTitle,
-                    style: const TextStyle(
-                      color: MijigiColors.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+        clipBehavior: Clip.antiAlias,
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              // Left color accent stripe
+              Container(
+                width: 3,
+                decoration: BoxDecoration(
+                  color: _iconColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    bottomLeft: Radius.circular(16),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _subtitle,
-                    style: const TextStyle(
-                      color: MijigiColors.textTertiary,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            if (item.isPinned)
-              const Icon(Icons.push_pin_rounded,
-                  size: 14, color: MijigiColors.primary),
-          ],
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: _iconColor.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(_icon, color: _iconColor.withValues(alpha: 0.8), size: 20),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              item.displayTitle,
+                              style: const TextStyle(
+                                color: MijigiColors.textPrimary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: -0.1,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _subtitle,
+                              style: TextStyle(
+                                color: MijigiColors.textTertiary.withValues(alpha: 0.7),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (item.isPinned)
+                        Icon(Icons.push_pin_rounded,
+                            size: 14, color: MijigiColors.primaryLight.withValues(alpha: 0.7)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -719,7 +776,7 @@ class _FileCard extends StatelessWidget {
     final parts = <String>[];
     if (_fileExtension.isNotEmpty) parts.add(_fileExtension);
     parts.add(_formatDate(item.createdAt));
-    return parts.join(' • ');
+    return parts.join('  /  ');
   }
 
   String get _fileExtension {

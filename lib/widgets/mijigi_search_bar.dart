@@ -42,14 +42,17 @@ class _MijigiSearchBarState extends State<MijigiSearchBar> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,
-      height: 44,
+      height: 46,
       decoration: BoxDecoration(
-        color: _hasFocus ? MijigiColors.surfaceLight : MijigiColors.surface,
-        borderRadius: BorderRadius.circular(22),
+        color: _hasFocus
+            ? MijigiColors.surfaceLight
+            : MijigiColors.surface,
+        borderRadius: BorderRadius.circular(23),
         border: Border.all(
           color: _hasFocus
-              ? MijigiColors.primary.withValues(alpha: 0.4)
-              : MijigiColors.border,
+              ? MijigiColors.primary.withValues(alpha: 0.35)
+              : MijigiColors.border.withValues(alpha: 0.6),
+          width: 0.5,
         ),
       ),
       child: Focus(
@@ -62,32 +65,33 @@ class _MijigiSearchBarState extends State<MijigiSearchBar> {
           style: const TextStyle(
             color: MijigiColors.textPrimary,
             fontSize: 14,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w400,
+            letterSpacing: 0.1,
           ),
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: const TextStyle(
-              color: MijigiColors.textTertiary,
+            hintStyle: TextStyle(
+              color: MijigiColors.textTertiary.withValues(alpha: 0.7),
               fontSize: 14,
               fontWeight: FontWeight.w400,
             ),
             prefixIcon: Padding(
-              padding: const EdgeInsets.only(left: 14, right: 8),
+              padding: const EdgeInsets.only(left: 16, right: 10),
               child: Icon(
                 Icons.search_rounded,
                 color: _hasFocus
                     ? MijigiColors.primary
-                    : MijigiColors.textTertiary,
-                size: 20,
+                    : MijigiColors.textTertiary.withValues(alpha: 0.7),
+                size: 19,
               ),
             ),
             prefixIconConstraints:
                 const BoxConstraints(minWidth: 0, minHeight: 0),
             suffixIcon: _controller.text.isNotEmpty
                 ? Padding(
-                    padding: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.only(right: 8),
                     child: IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 18),
+                      icon: const Icon(Icons.close_rounded, size: 16),
                       color: MijigiColors.textTertiary,
                       onPressed: () {
                         _controller.clear();
@@ -104,7 +108,7 @@ class _MijigiSearchBarState extends State<MijigiSearchBar> {
             focusedBorder: InputBorder.none,
             filled: false,
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
+                const EdgeInsets.symmetric(horizontal: 0, vertical: 13),
           ),
         ),
       ),
