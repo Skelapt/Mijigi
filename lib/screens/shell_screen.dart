@@ -5,7 +5,7 @@ import '../theme/app_theme.dart';
 import 'photos/photos_screen.dart';
 import 'scanner/scanner_tab_screen.dart';
 import 'files/files_screen.dart';
-import 'clipboard/clipboard_screen.dart';
+import 'qr/qr_screen.dart';
 
 class ShellScreen extends StatefulWidget {
   const ShellScreen({super.key});
@@ -31,7 +31,7 @@ class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       // App came to foreground
-      context.read<AppProvider>().checkClipboardNow();
+      // App resumed
     }
   }
 
@@ -39,7 +39,7 @@ class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
     PhotosScreen(),      // 0
     ScannerTabScreen(),  // 1
     FilesScreen(),       // 2
-    ClipboardScreen(),   // 3
+    QrScreen(),          // 3
   ];
 
   @override
@@ -92,8 +92,8 @@ class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
                       onTap: () => provider.setTab(2),
                     ),
                     _NavItem(
-                      icon: Icons.content_paste_rounded,
-                      label: 'Clipboard',
+                      icon: Icons.qr_code_scanner_rounded,
+                      label: 'QR Scan',
                       isActive: provider.currentTab == 3,
                       onTap: () => provider.setTab(3),
                     ),

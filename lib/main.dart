@@ -26,7 +26,7 @@ class MijigiApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => AppProvider()..init(),
       child: MaterialApp(
-        title: 'Mijigi',
+        title: 'Picxtract',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark,
         home: const _SplashGate(),
@@ -64,7 +64,7 @@ class _SplashGate extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'Mijigi',
+                    'Picxtract',
                     style: TextStyle(
                       color: MijigiColors.textPrimary,
                       fontSize: 28,

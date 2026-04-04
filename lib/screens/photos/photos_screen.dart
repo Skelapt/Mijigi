@@ -479,7 +479,7 @@ class _PhotosScreenState extends State<PhotosScreen>
                             fontWeight: FontWeight.w500)),
                     const SizedBox(height: 8),
                     const Text(
-                        'Collections auto-create as Mijigi scans your photos',
+                        'Collections auto-create as Picxtract scans your photos',
                         style: TextStyle(
                             color: MijigiColors.textTertiary, fontSize: 13,
                             fontWeight: FontWeight.w400)),

@@ -58,10 +58,10 @@ class PdfService {
       final bytes = await pdf.save();
       await file.writeAsBytes(bytes);
 
-      debugPrint('[Mijigi] PDF created: $path (${imagePaths.length} pages)');
+      debugPrint('[Picxtract] PDF created: $path (${imagePaths.length} pages)');
       return path;
     } catch (e) {
-      debugPrint('[Mijigi] PDF creation failed: $e');
+      debugPrint('[Picxtract] PDF creation failed: $e');
       return null;
     }
   }

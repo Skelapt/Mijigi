@@ -1,5 +1,5 @@
 name: mijigi
-description: "Capture anything. Find everything."
+description: "Picxtract - Extract everything from your photos."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -23,6 +23,7 @@ dependencies:
   # OCR & ML
   google_mlkit_text_recognition: ^0.15.0
   google_mlkit_image_labeling: ^0.14.0
+  google_mlkit_barcode_scanning: ^0.14.0
 
   # Media
   image_picker: ^1.0.7
