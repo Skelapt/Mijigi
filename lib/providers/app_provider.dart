@@ -254,11 +254,19 @@ class AppProvider extends ChangeNotifier {
         .map((i) => i.filePath!)
         .toSet();
 
+    int lastReload = 0;
     await for (final progress in _photoImport.importDevicePhotos(
       storage: _storage,
       existingFilePaths: existingPaths,
     )) {
       _importProgress = progress;
+
+      // Reload items every 5 imports so photos appear progressively
+      if (progress.imported > lastReload && progress.imported % 5 == 0) {
+        lastReload = progress.imported;
+        _items = _storage.getAllItems();
+      }
+
       notifyListeners();
 
       if (progress.status == ImportStatus.complete) {

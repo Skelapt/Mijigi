@@ -7,6 +7,7 @@ import '../../providers/app_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/mijigi_search_bar.dart';
 import '../item_detail/item_detail_screen.dart';
+import '../settings/settings_screen.dart';
 
 class PhotosScreen extends StatefulWidget {
   const PhotosScreen({super.key});
@@ -137,13 +138,16 @@ class _PhotosScreenState extends State<PhotosScreen>
             headerSliverBuilder: (context, _) => [
               const SliverToBoxAdapter(child: SizedBox(height: 48)),
 
-              // Sub-tabs: All | Collections  --  subtle underline style
+              // Sub-tabs + settings icon
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: SizedBox(
-                    height: 40,
-                    child: TabBar(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 40,
+                          child: TabBar(
                       controller: _tabController,
                       indicator: const UnderlineTabIndicator(
                         borderSide: BorderSide(
@@ -168,6 +172,25 @@ class _PhotosScreenState extends State<PhotosScreen>
                         Tab(text: 'Collections'),
                       ],
                     ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  ),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: MijigiColors.surface,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.settings_rounded,
+                        color: MijigiColors.textTertiary, size: 18),
+                  ),
+                ),
+              ],
                   ),
                 ),
               ),
@@ -372,9 +395,9 @@ class _PhotosScreenState extends State<PhotosScreen>
                 _chip('Screenshots', screenshots, _filter == 'screenshots',
                     () => setState(() => _filter = 'screenshots')),
                 const SizedBox(width: 8),
-                _chip('Videos', videos, _filter == 'videos',
-                    () => setState(() => _filter = 'videos')),
-                const SizedBox(width: 8),
+                // Videos filter hidden for now
+                // _chip('Videos', videos, _filter == 'videos',
+                //     () => setState(() => _filter = 'videos')),
                 _chip('Things', photos, _filter == 'things',
                     () => setState(() => _filter = 'things')),
               ],
