@@ -114,8 +114,9 @@ class BarcodeService {
           structuredData: structured.isNotEmpty ? structured : null,
         );
       }).toList();
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('[Picxtract] Barcode scan failed: $e');
+      debugPrint('[Picxtract] Stack: $stack');
       return [];
     }
   }

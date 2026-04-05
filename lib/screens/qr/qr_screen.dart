@@ -226,7 +226,21 @@ class _QrScreenState extends State<QrScreen> {
   Future<void> _processImage(String path) async {
     setState(() => _isScanning = true);
 
-    final barcodes = await _barcodeService.scanImage(path);
+    List<ScannedBarcode> barcodes = [];
+    try {
+      barcodes = await _barcodeService.scanImage(path);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Scan error: $e',
+                style: const TextStyle(color: Colors.white)),
+          ),
+        );
+      }
+      setState(() => _isScanning = false);
+      return;
+    }
 
     if (barcodes.isEmpty && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
