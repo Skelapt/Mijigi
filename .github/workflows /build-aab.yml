@@ -1,0 +1,90 @@
+name: Build Flutter AAB - VoiceBubble
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.6'
+          channel: stable
+
+      - name: Write local.properties
+        run: |
+          mkdir -p android
+          FLUTTER_SDK=$(dirname "$(dirname "$(which flutter)")")
+          echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
+          echo "sdk.dir=$ANDROID_SDK_ROOT" >> android/local.properties
+
+      - name: Precache Flutter engine
+        run: flutter precache --android --force
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Verify keystore exists
+        run: |
+          set -e
+          echo "✅ Checking keystore: android/app/keystore/voicebubble-release.jks"
+          ls -lh android/app/keystore/voicebubble-release.jks
+          echo ""
+          echo "📋 Keystore details:"
+          keytool -list -v -keystore android/app/keystore/voicebubble-release.jks -alias voicebubble -storepass voicebubble2024 -keypass voicebubble2024 | grep -E "Alias name:|Creation date:|Valid|SHA1:|SHA256:"
+          echo ""
+          echo "🔑 Setting environment variables for build..."
+          echo "KEY_ALIAS=voicebubble" >> $GITHUB_ENV
+          echo "STORE_PASSWORD=voicebubble2024" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=voicebubble2024" >> $GITHUB_ENV
+
+      - name: Build signed AAB
+        run: |
+          echo "🏗️ Building release AAB..."
+          flutter build appbundle --release --build-number $GITHUB_RUN_NUMBER --no-tree-shake-icons
+          echo "✅ Build complete!"
+          ls -lh build/app/outputs/bundle/release/
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: voicebubble-release-aab-build-${{ github.run_number }}
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+      - name: Upload mapping file (for crash analysis)
+        uses: actions/upload-artifact@v4
+        with:
+          name: voicebubble-mapping-build-${{ github.run_number }}
+          path: build/app/outputs/mapping/release/mapping.txt
+          if-no-files-found: warn
+
+      - name: Build summary
+        run: |
+          echo "## 🚀 Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **AAB built successfully!**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Number:** $GITHUB_RUN_NUMBER" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          AAB_SIZE=$(du -h build/app/outputs/bundle/release/app-release.aab | cut -f1)
+          echo "- **AAB Size:** $AAB_SIZE" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Download Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- AAB: \`voicebubble-release-aab-build-$GITHUB_RUN_NUMBER\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Mapping: \`voicebubble-mapping-build-$GITHUB_RUN_NUMBER\`" >> $GITHUB_STEP_SUMMARY
