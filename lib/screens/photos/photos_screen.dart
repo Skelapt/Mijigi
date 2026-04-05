@@ -311,12 +311,9 @@ class _PhotosScreenState extends State<PhotosScreen>
           onNotification: (notification) {
             if (items.isEmpty) return false;
             if (notification is ScrollUpdateNotification) {
-              // Calculate which item is visible based on scroll offset
-              // Grid is 3 columns, each row ~(screenWidth/3) height
-              final rowHeight = (MediaQuery.of(context).size.width - 4) / 3;
+              final rowHeight = (MediaQuery.of(context).size.width - 2) / 3;
               final scrollOffset = _scrollController.offset;
-              // Account for header height (~180px for search + pills + filters)
-              final adjustedOffset = (scrollOffset - 180).clamp(0.0, double.infinity);
+              final adjustedOffset = (scrollOffset - 160).clamp(0.0, double.infinity);
               final visibleRow = (adjustedOffset / (rowHeight + 1)).floor();
               final visibleIndex = (visibleRow * 3).clamp(0, items.length - 1);
               final date = _getDateForIndex(items, visibleIndex);
@@ -325,15 +322,21 @@ class _PhotosScreenState extends State<PhotosScreen>
               }
             }
             if (notification is ScrollEndNotification) {
-              Future.delayed(const Duration(seconds: 1), () {
+              Future.delayed(const Duration(seconds: 2), () {
                 if (mounted) setState(() => _showDateBubble = false);
               });
             }
             return false;
           },
-          child: CustomScrollView(
+          child: Scrollbar(
             controller: _scrollController,
-            slivers: [
+            interactive: true,
+            thumbVisibility: items.length > 30,
+            thickness: 6,
+            radius: const Radius.circular(3),
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
         // Search
         SliverToBoxAdapter(
           child: Padding(
@@ -436,6 +439,7 @@ class _PhotosScreenState extends State<PhotosScreen>
 
         const SliverToBoxAdapter(child: SizedBox(height: 100)),
       ],
+    ),
     ),
     ),
     // Date bubble on right side
