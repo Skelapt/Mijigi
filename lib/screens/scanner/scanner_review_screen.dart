@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_provider.dart';
 import '../../services/pdf_service.dart';
+import '../../services/ocr_service.dart';
 import '../../theme/app_theme.dart';
 
 enum ScanFilter { original, bw, grayscale, enhanced }
@@ -35,7 +36,10 @@ class _ScannerReviewScreenState extends State<ScannerReviewScreen> {
   int _currentPage = 0;
   final PageController _pageController = PageController();
   final ImagePicker _picker = ImagePicker();
+  final OcrService _ocr = OcrService();
   bool _isCreating = false;
+  bool _isExtracting = false;
+  String? _extractedText;
   final TextEditingController _nameController =
       TextEditingController(text: 'Scanned Document');
 
@@ -49,6 +53,7 @@ class _ScannerReviewScreenState extends State<ScannerReviewScreen> {
   void dispose() {
     _pageController.dispose();
     _nameController.dispose();
+    _ocr.dispose();
     super.dispose();
   }
 
@@ -250,6 +255,12 @@ class _ScannerReviewScreenState extends State<ScannerReviewScreen> {
                   }),
                 ),
                 _ActionBtn(
+                  icon: Icons.text_fields_rounded,
+                  label: 'Extract Text',
+                  color: const Color(0xFF22C55E),
+                  onTap: _isExtracting ? () {} : _extractText,
+                ),
+                _ActionBtn(
                   icon: Icons.add_a_photo_rounded,
                   label: 'Add Page',
                   onTap: _addPage,
@@ -293,6 +304,112 @@ class _ScannerReviewScreenState extends State<ScannerReviewScreen> {
               ],
             ),
           ),
+
+          // Extracting indicator
+          if (_isExtracting)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 14, height: 14,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Color(0xFF22C55E)),
+                  ),
+                  SizedBox(width: 8),
+                  Text('Extracting text...',
+                      style: TextStyle(
+                          color: MijigiColors.textSecondary, fontSize: 12)),
+                ],
+              ),
+            ),
+
+          // Extracted text display
+          if (_extractedText != null && _extractedText!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                width: double.infinity,
+                constraints: const BoxConstraints(maxHeight: 160),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: MijigiColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF22C55E).withValues(alpha: 0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.text_fields_rounded,
+                            size: 14, color: Color(0xFF22C55E)),
+                        const SizedBox(width: 6),
+                        const Text('Extracted Text',
+                            style: TextStyle(
+                                color: Color(0xFF22C55E),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () {
+                            Clipboard.setData(
+                                ClipboardData(text: _extractedText!));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Text copied',
+                                    style: TextStyle(color: Colors.white)),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF22C55E)
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.copy_rounded,
+                                    size: 12, color: Color(0xFF22C55E)),
+                                SizedBox(width: 4),
+                                Text('Copy All',
+                                    style: TextStyle(
+                                        color: Color(0xFF22C55E),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: SelectableText(
+                          _extractedText!,
+                          style: const TextStyle(
+                            color: MijigiColors.textPrimary,
+                            fontSize: 13,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          if (_extractedText != null && _extractedText!.isNotEmpty)
+            const SizedBox(height: 8),
 
           // Creating indicator
           if (_isCreating)
@@ -355,6 +472,39 @@ class _ScannerReviewScreenState extends State<ScannerReviewScreen> {
     ScanFilter.grayscale => 'Grayscale',
     ScanFilter.enhanced => 'Enhanced',
   };
+
+  Future<void> _extractText() async {
+    setState(() { _isExtracting = true; _extractedText = null; });
+
+    final allText = StringBuffer();
+    for (final page in _pages) {
+      try {
+        final result = await _ocr.processImage(page.imagePath);
+        if (result.isNotEmpty) {
+          if (allText.isNotEmpty) allText.write('\n\n--- Page ${_pages.indexOf(page) + 1} ---\n\n');
+          allText.write(result.fullText);
+        }
+      } catch (e) {
+        debugPrint('OCR failed for page: $e');
+      }
+    }
+
+    setState(() {
+      _isExtracting = false;
+      _extractedText = allText.toString();
+    });
+
+    if (_extractedText == null || _extractedText!.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No text found in scanned pages',
+                style: TextStyle(color: Colors.white)),
+          ),
+        );
+      }
+    }
+  }
 
   Future<void> _addPage() async {
     final XFile? photo = await _picker.pickImage(
