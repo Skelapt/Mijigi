@@ -9,6 +9,7 @@ import '../services/ocr_service.dart';
 import '../services/labeling_service.dart';
 import '../services/search_service.dart';
 import '../services/categorisation_service.dart';
+import '../services/device_photos_service.dart';
 import '../services/photo_import_service.dart';
 
 class AppProvider extends ChangeNotifier {
@@ -18,21 +19,27 @@ class AppProvider extends ChangeNotifier {
   final SearchService _search = SearchService();
   final CategorisationService _categorisation = CategorisationService();
   final PhotoImportService _photoImport = PhotoImportService();
+  final DevicePhotosService _devicePhotos = DevicePhotosService();
   final ImagePicker _picker = ImagePicker();
   final _uuid = const Uuid();
 
   List<CaptureItem> _items = [];
+  List<DevicePhoto> _devicePhotosList = [];
   final String _searchQuery = '';
   bool _isLoading = false;
   bool _isProcessing = false;
   bool _isImporting = false;
   ImportProgress? _importProgress;
   int _currentTab = 0;
+  int _backgroundProcessed = 0;
+  int _backgroundTotal = 0;
 
   // Getters
   List<CaptureItem> get items => _items;
   List<CaptureItem> get activeItems =>
       _items.where((i) => !i.isArchived).toList();
+  List<DevicePhoto> get devicePhotos => _devicePhotosList;
+  bool get hasDevicePhotos => _devicePhotosList.isNotEmpty;
   String get searchQuery => _searchQuery;
   bool get isLoading => _isLoading;
   bool get isProcessing => _isProcessing;
@@ -40,6 +47,8 @@ class AppProvider extends ChangeNotifier {
   ImportProgress? get importProgress => _importProgress;
   int get currentTab => _currentTab;
   int get totalItems => activeItems.length;
+  int get backgroundProcessed => _backgroundProcessed;
+  int get backgroundTotal => _backgroundTotal;
   StorageService get storage => _storage;
 
   Future<void> init() async {
@@ -54,6 +63,68 @@ class AppProvider extends ChangeNotifier {
 
     // Process any unprocessed items in background
     _processUnprocessedItems();
+
+    // Load device photos instantly (just thumbnails, no copying)
+    _loadDevicePhotosInstantly();
+  }
+
+  /// Load device photos instantly - shows thumbnails from device
+  /// Then processes OCR/labeling in background
+  Future<void> _loadDevicePhotosInstantly() async {
+    final hasPermission = await _devicePhotos.requestPermission();
+    if (!hasPermission) return;
+
+    // Load photo list instantly
+    _devicePhotosList = await _devicePhotos.loadDevicePhotos(limit: 1000);
+    notifyListeners();
+
+    // Load thumbnails in batches
+    for (var i = 0; i < _devicePhotosList.length; i += 10) {
+      final batch = _devicePhotosList.skip(i).take(10);
+      await Future.wait(batch.map((dp) async {
+        dp.thumbnail = await _devicePhotos.loadThumbnail(dp.asset);
+      }));
+      notifyListeners();
+    }
+
+    // Now process in background - copy files + OCR + labeling
+    _backgroundTotal = _devicePhotosList.where((dp) {
+      return _storage.getItem(dp.id) == null;
+    }).length;
+    _backgroundProcessed = 0;
+    if (_backgroundTotal > 0) {
+      _isProcessing = true;
+      notifyListeners();
+    }
+
+    for (final dp in _devicePhotosList) {
+      // Skip if already in storage
+      if (_storage.getItem(dp.id) != null) continue;
+
+      final item = await _devicePhotos.processInBackground(
+        asset: dp.asset,
+        assetKey: dp.id,
+        storage: _storage,
+        ocr: _ocr,
+        labeling: _labeling,
+        categorisation: _categorisation,
+      );
+
+      if (item != null) {
+        _items = _storage.getAllItems();
+        _backgroundProcessed++;
+        if (_backgroundProcessed % 5 == 0) {
+          notifyListeners();
+        }
+      }
+
+      // Yield to UI
+      await Future.delayed(Duration.zero);
+    }
+
+    _isProcessing = false;
+    _items = _storage.getAllItems();
+    notifyListeners();
   }
 
   /// Manual check (no-op, auto-capture removed)

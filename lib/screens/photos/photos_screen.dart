@@ -410,10 +410,35 @@ class _PhotosScreenState extends State<PhotosScreen>
 
         const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
-        // Grid
-        if (items.isEmpty)
+        // Background processing indicator
+        if (provider.isProcessing && provider.backgroundTotal > 0)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 20, right: 20, bottom: 8),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 12, height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5, color: MijigiColors.primary),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Scanning ${provider.backgroundProcessed}/${provider.backgroundTotal}',
+                    style: TextStyle(
+                      color: MijigiColors.textTertiary,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // Grid - show stored items if available, device photos as fallback
+        if (items.isEmpty && !provider.hasDevicePhotos)
           SliverToBoxAdapter(child: _buildEmpty())
-        else
+        else if (items.isNotEmpty)
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 1),
             sliver: SliverGrid(
@@ -433,6 +458,30 @@ class _PhotosScreenState extends State<PhotosScreen>
                   );
                 },
                 childCount: items.length,
+              ),
+            ),
+          )
+        else
+          // Show device photo thumbnails instantly (before processing)
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 1),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 1,
+                mainAxisSpacing: 1,
+                childAspectRatio: 1.0,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final dp = provider.devicePhotos[index];
+                  return GestureDetector(
+                    child: dp.thumbnail != null
+                        ? Image.memory(dp.thumbnail!, fit: BoxFit.cover)
+                        : Container(color: MijigiColors.surfaceLight),
+                  );
+                },
+                childCount: provider.devicePhotos.length,
               ),
             ),
           ),
