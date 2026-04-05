@@ -1,4 +1,4 @@
-name: Build Flutter AAB - VoiceBubble
+name: Build Flutter AAB - Picxtract
 
 on:
   workflow_dispatch:
@@ -31,60 +31,56 @@ jobs:
           echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
           echo "sdk.dir=$ANDROID_SDK_ROOT" >> android/local.properties
 
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/picxtract-release.jks
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "storeFile=picxtract-release.jks" >> android/key.properties
+          ls -lh android/app/picxtract-release.jks
+
+      - name: Verify keystore
+        run: |
+          keytool -list -keystore android/app/picxtract-release.jks \
+            -alias ${{ secrets.KEY_ALIAS }} \
+            -storepass ${{ secrets.KEYSTORE_PASSWORD }} \
+            | grep -E "Alias|SHA"
+
       - name: Precache Flutter engine
         run: flutter precache --android --force
 
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Verify keystore exists
-        run: |
-          set -e
-          echo "✅ Checking keystore: android/app/keystore/voicebubble-release.jks"
-          ls -lh android/app/keystore/voicebubble-release.jks
-          echo ""
-          echo "📋 Keystore details:"
-          keytool -list -v -keystore android/app/keystore/voicebubble-release.jks -alias voicebubble -storepass voicebubble2024 -keypass voicebubble2024 | grep -E "Alias name:|Creation date:|Valid|SHA1:|SHA256:"
-          echo ""
-          echo "🔑 Setting environment variables for build..."
-          echo "KEY_ALIAS=voicebubble" >> $GITHUB_ENV
-          echo "STORE_PASSWORD=voicebubble2024" >> $GITHUB_ENV
-          echo "KEY_PASSWORD=voicebubble2024" >> $GITHUB_ENV
-
       - name: Build signed AAB
         run: |
-          echo "🏗️ Building release AAB..."
           flutter build appbundle --release --build-number $GITHUB_RUN_NUMBER --no-tree-shake-icons
-          echo "✅ Build complete!"
           ls -lh build/app/outputs/bundle/release/
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: voicebubble-release-aab-build-${{ github.run_number }}
+          name: picxtract-release-aab-build-${{ github.run_number }}
           path: build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
 
-      - name: Upload mapping file (for crash analysis)
+      - name: Upload mapping file
         uses: actions/upload-artifact@v4
         with:
-          name: voicebubble-mapping-build-${{ github.run_number }}
+          name: picxtract-mapping-build-${{ github.run_number }}
           path: build/app/outputs/mapping/release/mapping.txt
           if-no-files-found: warn
 
       - name: Build summary
         run: |
-          echo "## 🚀 Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **AAB built successfully!**" >> $GITHUB_STEP_SUMMARY
+          echo "**AAB built successfully!**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Build Number:** $GITHUB_RUN_NUMBER" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
           AAB_SIZE=$(du -h build/app/outputs/bundle/release/app-release.aab | cut -f1)
           echo "- **AAB Size:** $AAB_SIZE" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📦 Download Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "- AAB: \`voicebubble-release-aab-build-$GITHUB_RUN_NUMBER\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Mapping: \`voicebubble-mapping-build-$GITHUB_RUN_NUMBER\`" >> $GITHUB_STEP_SUMMARY
+          echo "- AAB: \`picxtract-release-aab-build-$GITHUB_RUN_NUMBER\`" >> $GITHUB_STEP_SUMMARY
