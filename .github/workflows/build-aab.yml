@@ -31,20 +31,18 @@ jobs:
           echo "flutter.sdk=$FLUTTER_SDK" > android/local.properties
           echo "sdk.dir=$ANDROID_SDK_ROOT" >> android/local.properties
 
-      - name: Decode keystore
+      - name: Write key.properties
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/picxtract-release.jks
-          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-          echo "storeFile=picxtract-release.jks" >> android/key.properties
-          ls -lh android/app/picxtract-release.jks
+          echo "storePassword=Picxtract2026!" > android/key.properties
+          echo "keyPassword=Picxtract2026!" >> android/key.properties
+          echo "keyAlias=picxtract" >> android/key.properties
+          echo "storeFile=keystore/picxtract-release.jks" >> android/key.properties
 
       - name: Verify keystore
         run: |
-          keytool -list -keystore android/app/picxtract-release.jks \
-            -alias ${{ secrets.KEY_ALIAS }} \
-            -storepass ${{ secrets.KEYSTORE_PASSWORD }} \
+          ls -lh android/app/keystore/picxtract-release.jks
+          keytool -list -keystore android/app/keystore/picxtract-release.jks \
+            -alias picxtract -storepass Picxtract2026! \
             | grep -E "Alias|SHA"
 
       - name: Precache Flutter engine
