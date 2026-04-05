@@ -6,6 +6,7 @@ import '../../providers/app_provider.dart';
 import '../../theme/app_theme.dart';
 import 'scanner_review_screen.dart';
 import '../item_detail/item_detail_screen.dart';
+import '../settings/settings_screen.dart';
 
 class ScannerTabScreen extends StatefulWidget {
   const ScannerTabScreen({super.key});
@@ -114,6 +115,26 @@ class _ScannerTabScreenState extends State<ScannerTabScreen>
           body: SafeArea(
             child: Column(
               children: [
+                // Settings icon top right
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 20, top: 8),
+                    child: GestureDetector(
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                      child: Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(
+                          color: MijigiColors.surface,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.settings_rounded,
+                            color: MijigiColors.textTertiary, size: 18),
+                      ),
+                    ),
+                  ),
+                ),
                 // Scan viewfinder area - takes most of the screen
                 Expanded(
                   flex: 3,

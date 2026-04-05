@@ -8,6 +8,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/mijigi_search_bar.dart';
 import '../item_detail/item_detail_screen.dart';
 import '../scanner/scanner_review_screen.dart';
+import '../settings/settings_screen.dart';
 
 class FilesScreen extends StatefulWidget {
   const FilesScreen({super.key});
@@ -93,14 +94,32 @@ class _FilesScreenState extends State<FilesScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: const Text(
-                    'Documents',
-                    style: TextStyle(
-                      color: MijigiColors.textPrimary,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w300,
-                      letterSpacing: -0.5,
-                    ),
+                  child: Row(
+                    children: [
+                      const Text(
+                        'Documents',
+                        style: TextStyle(
+                          color: MijigiColors.textPrimary,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w300,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                        child: Container(
+                          width: 36, height: 36,
+                          decoration: BoxDecoration(
+                            color: MijigiColors.surface,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.settings_rounded,
+                              color: MijigiColors.textTertiary, size: 18),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/barcode_service.dart';
 import '../../theme/app_theme.dart';
+import '../settings/settings_screen.dart';
 
 class QrScreen extends StatefulWidget {
   const QrScreen({super.key});
@@ -37,14 +38,32 @@ class _QrScreenState extends State<QrScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: const Text(
-                'QR & Barcodes',
-                style: TextStyle(
-                  color: MijigiColors.textPrimary,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w300,
-                  letterSpacing: -0.5,
-                ),
+              child: Row(
+                children: [
+                  const Text(
+                    'QR & Barcodes',
+                    style: TextStyle(
+                      color: MijigiColors.textPrimary,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w300,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                    child: Container(
+                      width: 36, height: 36,
+                      decoration: BoxDecoration(
+                        color: MijigiColors.surface,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.settings_rounded,
+                          color: MijigiColors.textTertiary, size: 18),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
